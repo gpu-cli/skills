@@ -98,3 +98,85 @@ Conducts time-boxed technical investigations with structured, citation-backed ou
    - Concrete next steps
 
 4. Applies anti-hallucination protocols: only states what sources confirm, uses hedging for inferences, marks opinions vs facts.
+
+---
+
+### tmux-cli-test
+
+Test CLI applications interactively using tmux sessions. Provides a helper library for launching commands, waiting on conditions (never sleeping), sending keypresses, capturing output, and asserting on content. Works with any CLI or TUI — GPU CLI patterns included. Also supports testing inside Docker containers.
+
+**Invoke:** `/tmux-cli-test`
+
+**How it works:**
+
+1. Sources `tmux_helpers.sh` for a full set of primitives:
+   - `tmux_start` / `tmux_kill` — session lifecycle
+   - `tmux_wait_for` / `tmux_wait_for_regex` / `tmux_wait_gone` / `tmux_wait_exit` — condition-based polling (never `sleep`)
+   - `tmux_send` / `tmux_type` — keyboard input
+   - `tmux_capture` / `tmux_capture_ansi` — frame snapshots
+   - `tmux_assert_contains` / `tmux_assert_matches` / `tmux_assert_not_contains` — assertions
+
+2. Test pattern:
+   ```
+   Start session → wait for ready signal → interact → assert → kill
+   ```
+
+3. Docker support via `tmux_docker_helpers.sh` — routes all tmux commands through `docker exec` for container-based testing.
+
+**Requires:** `tmux`
+
+---
+
+### tui-clone
+
+Explore and analyze TUI applications to produce clone-ready documentation. Launches the target TUI in a tmux session, systematically explores all views and keybindings, captures ASCII diagrams of each screen, and writes findings incrementally to a timestamped markdown file (survives context compaction).
+
+**Invoke:** `/tui-clone`
+
+**How it works:**
+
+1. Launches target TUI in a sized tmux session using `tmux_helpers.sh`
+2. Immediately writes each discovered screen to the output file as it's found — context compaction safe
+3. Captures across 12 dimensions:
+   - Screen catalog with ASCII diagrams and entry paths
+   - Full keybinding table by context
+   - State transition map (From → Trigger → To)
+   - Component inventory (lists, modals, tabs, inputs, status bars)
+   - Color palette via ANSI capture
+   - Responsive behavior at compact (80×24) and wide (200×50) sizes
+   - Error, loading, and empty states
+   - Data structure patterns (lists, trees, tables, diffs)
+
+4. Outputs `tui-analysis-[app-name]-[timestamp].md` — a complete clone spec
+
+**Supports:** Claude Code, OpenCode, Codex, lazygit, lazydocker, htop, btop, k9s, and any ratatui/ncurses app.
+
+---
+
+### tui-review
+
+Critically review terminal user interfaces across 10 UX dimensions. Launches the TUI in tmux, takes color screenshots at key states using `freeze`, visually inspects each one, and produces a graded report. Benchmarks against Claude Code, OpenCode, and Codex — the three best-in-class AI terminal UIs.
+
+**Invoke:** `/tui-review`
+
+**How it works:**
+
+1. Enables true-color tmux support (`Tc` override) so RGB colors from ratatui/crossterm are preserved in captures
+2. Takes color PNG screenshots via `capture-pane -e | freeze --language ansi` at:
+   - Initial load, help overlay, command palette, processing/streaming, completed response, error state, dialog/modal, permission flow, and resize at 80×24 / 120×30 / 160×40 / 200×50
+3. Visually inspects every screenshot using the Read tool — evaluating color semantics, contrast, layout density, typography, and polish
+4. Tests 10 dimensions:
+   1. **Responsiveness** — visible change within 100ms per keypress
+   2. **Input Mode Integrity** — trigger chars don't hijack mid-sentence text
+   3. **Visual Feedback** — every app state has a distinct indicator
+   4. **Navigation & Escape** — Escape always goes back, never stuck
+   5. **Feedback Loops** — submit → echo → loading → stream → completion
+   6. **Error & Empty States** — every state has a designed appearance
+   7. **Layout & Resize** — usable at 80×24, scales to 200×50+
+   8. **Keyboard Design** — all features keyboard-reachable, discoverable
+   9. **Permission Flows** — destructive actions show preview + confirmation
+   10. **Visual Design & Color** — color communicates meaning, sufficient contrast
+5. Flags excessive border usage (full-screen borders waste real estate; best-in-class TUIs use divider lines and selective borders only)
+6. Produces a graded report (A–F) with screenshots, dimension scores, and CRITICAL / WARNING / INFO findings
+
+**Requires:** `tmux`, `freeze` (`brew install charmbracelet/tap/freeze`)
