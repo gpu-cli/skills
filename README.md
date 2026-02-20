@@ -10,6 +10,26 @@ npx skills add gpu-cli/skills
 
 ## Skills
 
+### dev-post-generator
+
+Generate social media content from code changes. Analyzes branch diffs, researches current platform best practices, generates content ideas for interactive selection, captures visual assets (terminal screenshots, code snippets, before/after comparisons), and produces platform-optimized post packages ready to publish.
+
+**Invoke:** `/dev-post-generator` before merging a feature branch
+
+**How it works:**
+
+1. Asks upfront questions to scope the work: branch, target platforms (Twitter/X, LinkedIn, Bluesky, Mastodon, Reddit), audience context, trend research preference, and asset type
+2. Analyzes the branch diff — commits, files changed, conventional commit prefixes — and writes a categorized `changelog.md`, classifying changes by social-media-worthiness
+3. Researches current platform best practices via WebSearch (character limits, media formats, hashtag strategy, what dev content performs well) — fresh every run, no static files to maintain
+4. Optionally researches trending topics in the project's domain to find natural tie-ins
+5. Generates 3-5 content ideas with distinct angles (announcement, before/after, behind-the-scenes, problem/solution, demo, thread, trend tie-in) and presents them for interactive selection
+6. Captures visual assets: terminal screenshots via tmux + freeze, code snippets with syntax highlighting, diff screenshots, before/after comparisons, asciinema recordings (all degrade gracefully if tools are missing)
+7. Composes platform-specific post copy with proper formatting, alt text, and posting notes — presents drafts for review and revision
+
+**Requires:** `git`; optionally `freeze` (`brew install charmbracelet/tap/freeze`), `asciinema`, `tmux`
+
+---
+
 ### context-curation
 
 Analyzes staged git changes and evaluates agentic context files to suggest additions or removals. Keeps your AI context (CLAUDE.md, .cursorrules, AGENTS.md, etc.) synchronized with actual code.
