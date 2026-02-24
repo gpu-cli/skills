@@ -546,14 +546,15 @@ ECOSYSTEM = 2.0   (downstream users, registries, CI/CD)
 ### Verdict Thresholds
 
 ```text
-PASS   : risk_score 0-24 AND no CRITICAL findings
-REVIEW : risk_score 25-59 OR any HIGH finding
+PASS   : risk_score 0-29 AND no CRITICAL findings
+REVIEW : risk_score 30-59
 FAIL   : risk_score 60-100 OR any CRITICAL finding
 ```
 
 Hard rules:
 
 - Any `CRITICAL` finding forces `FAIL` regardless of score
+- HIGH findings do NOT override the verdict — their risk is already reflected in the score
 - No other overrides or adjustments exist
 - The score shown in the verdict MUST match the sum shown in the scorecard table
 

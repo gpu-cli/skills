@@ -215,12 +215,13 @@ Overall:
 **The risk_score shown to the user MUST equal the sum shown in the scorecard table.** If the table shows individual scores summing to 28, the risk_score is 28. No adjustments.
 
 Determine verdict:
-- **PASS**: risk_score 0-24 AND no CRITICAL findings
-- **REVIEW**: risk_score 25-59 OR any HIGH finding
+- **PASS**: risk_score 0-29 AND no CRITICAL findings
+- **REVIEW**: risk_score 30-59
 - **FAIL**: risk_score 60-100 OR any CRITICAL finding
 
 Hard rules:
 - Any CRITICAL finding forces FAIL regardless of score
+- HIGH findings do NOT override the verdict — their risk is already reflected in the score
 - No other overrides or adjustments exist
 
 ### Phase 5: Present Results (Compact Scorecard Only)
