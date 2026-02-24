@@ -240,24 +240,30 @@ Present ONLY the following inline:
 
 Use the emoji verdict: `PASS`, `REVIEW`, or `FAIL`. The verdict and score are the headline — nothing else. Provenance is a technical detail that belongs in the report, not the title.
 
-**2. Scorecard table** (one row per finding, sorted by severity):
+**2. One-paragraph summary** (appears ABOVE the table):
+- What the skill does and its overall risk posture
+- The most important finding(s) and what to do about them
+- Whether `--remediate` can auto-fix the issues
+
+**3. Scorecard table** (one row per finding, sorted by severity):
 
 ```
-| Finding | Check | Severity | Weight | Exploit | Radius | Score |
-|---------|-------|----------|--------|---------|--------|------:|
+| Finding | Check | Severity | Weight | Exploitation | Radius | Score |
+|---------|-------|----------|--------|--------------|--------|------:|
 | SS-HIGH-001 | SH-009 | HIGH | 7 | POSSIBLE (1.0) | PROJECT (1.0) | 7.0 |
 | ... | ... | ... | ... | ... | ... | ... |
 | | | | | | **Total** | **N** |
 ```
 
-The exploitability and blast radius values MUST come from the fixed lookup table in `references/dangerous-patterns.md`. The Total row MUST equal risk_score. No exceptions.
+The exploitation and blast radius values MUST come from the fixed lookup table in `references/dangerous-patterns.md`. The Total row MUST equal risk_score. No exceptions.
 
-**3. One-paragraph summary** covering:
-- What the skill does and its overall risk posture
-- The most important finding(s) and what to do about them
-- Whether `--remediate` can auto-fix the issues
+**4. Footnote** — immediately after the table, add:
 
-**4. Offer next steps:**
+```
+*Check IDs (e.g. SH-013, SC-004) are defined in the skill-shield dangerous-patterns reference. Reply **report** for full finding details, evidence, and remediation guidance.*
+```
+
+**5. Offer next steps:**
 > Want the full report? Reply **report** (markdown), **json**, or **both**.
 > Want auto-remediation? Reply **remediate** or run `/skill-shield <path> --remediate`.
 
@@ -327,7 +333,13 @@ Never create output directories unless they are actually needed.
 >
 > **Verdict: FAIL** · Risk score: 39/100
 >
-> | Finding         | Check  | Severity | Weight | Exploit        | Radius         | Score |
+> This skill generates social media posts from git diffs. It fails the audit primarily because
+> scripts/generate.sh downloads and executes a remote script without SHA-256 verification (SH-005,
+> CRITICAL), which is a direct supply chain attack vector. It also lacks a defensive shell header
+> (SH-009) and has undeclared network egress for platform API research (MD-005). All 5 auto-remediable
+> findings can be fixed — run `/skill-shield ./skills/dev-post-generator --remediate`.
+>
+> | Finding         | Check  | Severity | Weight | Exploitation   | Radius         | Score |
 > |-----------------|--------|----------|--------|----------------|----------------|------:|
 > | SS-CRITICAL-001 | SH-005 | CRITICAL | 10     | LIKELY (1.5)   | PROJECT (1.0)  |  15.0 |
 > | SS-HIGH-001     | SH-009 | HIGH     | 7      | POSSIBLE (1.0) | PROJECT (1.0)  |   7.0 |
@@ -337,11 +349,7 @@ Never create output directories unless they are actually needed.
 > | SS-LOW-001      | SC-002 | LOW      | 1      | UNLIKELY (0.5) | LOCAL (0.5)    |  0.25 |
 > |                 |        |          |        |                | **Total**      | **39** |
 >
-> This skill generates social media posts from git diffs. It fails the audit primarily because
-> scripts/generate.sh downloads and executes a remote script without SHA-256 verification (SH-005,
-> CRITICAL), which is a direct supply chain attack vector. It also lacks a defensive shell header
-> (SH-009) and has undeclared network egress for platform API research (MD-005). All 5 auto-remediable
-> findings can be fixed — run `/skill-shield ./skills/dev-post-generator --remediate`.
+> *Check IDs (e.g. SH-005, SC-003) are defined in the skill-shield dangerous-patterns reference. Reply **report** for full finding details, evidence, and remediation guidance.*
 >
 > Want the full report? Reply **report**, **json**, or **both**.
 > Want auto-remediation? Reply **remediate**.
