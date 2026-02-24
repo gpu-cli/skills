@@ -180,3 +180,23 @@ Critically review terminal user interfaces across 10 UX dimensions. Launches the
 6. Produces a graded report (A–F) with screenshots, dimension scores, and CRITICAL / WARNING / INFO findings
 
 **Requires:** `tmux`, `freeze` (`brew install charmbracelet/tap/freeze`)
+
+---
+
+### skill-shield
+
+Security audit and active remediation for agent skills. Analyzes SKILL.md instructions and bundled scripts for prompt injection, data exfiltration, excessive permissions, supply chain risks, and other threats aligned with OWASP Top 10 for LLMs (2025), NIST AI RMF, SLSA, and OpenSSF Scorecard best practices. Presents findings inline first, then optionally generates structured reports (Markdown + JSON) and can rewrite skills to remove security concerns.
+
+**Invoke:** `/skill-shield <path>`, `/skill-shield <path> --remediate`, or `/skill-shield --all`
+
+**How it works:**
+
+1. **Phase 0 — Trust & Source Verification**: Assesses skill provenance (source pinning, publisher identity, repository health signals), checks against local allowlist/denylist, and calculates a provenance confidence score
+2. **Phase 1 — File Inventory**: Enumerates all files, classifies them (instruction, executable, reference, config), calculates SHA-256 hashes, and maps dependencies
+3. **Phase 2 — Static Analysis**: Applies 30+ pattern-matching checks from a comprehensive dangerous-patterns database covering shell script risks (credential access, code execution, persistence, exfiltration), instruction risks (prompt injection, hidden instructions, scope violations), and supply chain risks (missing permissions, mutable refs, undeclared dependencies)
+4. **Phase 3 — Behavioral Analysis**: Evaluates scope proportionality, data flow asymmetry, privilege escalation paths, time/state bombs, anti-analysis techniques, and self-modification
+5. **Phase 4 — Risk Scoring**: Calculates weighted risk score (severity x exploitability x blast radius) and determines verdict (PASS / WARN / FAIL)
+6. **Phase 5 — Present Results**: Displays full findings, verdict, permission profile, and recommendations inline. Asks the user if they want Markdown/JSON report files generated (reports are optional, never auto-written)
+7. **Phase 6 — Remediation** (optional): Rewrites the skill to a separate directory with security concerns addressed, generates `PERMISSIONS.md`, `CHECKSUMS.sha256`, and `PROVENANCE.md` integrity bundle. Auto-fixes LOW/MEDIUM issues; requires explicit user approval for HIGH/CRITICAL changes
+
+**Requires:** `sha256sum` (or `shasum`), `git`

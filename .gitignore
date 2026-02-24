@@ -26,3 +26,13 @@ logs/
 tmp/
 temp/
 *.tmp
+
+# Skills installer artifacts (created by `npx skills add`)
+.agents/
+.claude/
+skills-lock.json
+
+# skill-shield generated artifacts
+skills/skill-shield/artifacts/
+skill-audit-output/
+skill-shield-output/
