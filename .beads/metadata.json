@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "skills",
+  "project_id": "ea0a9396-8070-44f9-b87b-05c73638b85f"
+}
