@@ -3,6 +3,7 @@ name: lyrebird
 description: "Use when the user wants to establish a brand or personal writing voice, brainstorm content ideas, hone a content thesis, write platform-native posts for Blog, LinkedIn, Reddit, or X, or modify an existing post for another platform. Creates and reads VOICE.md, researches current platform guidance, fact-checks claims, and outputs social posts under social/<proposal-slug>/."
 argument-hint: "[command] [input]"
 user-invocable: true
+license: Apache-2.0
 ---
 
 # Lyrebird
@@ -66,3 +67,7 @@ Browse for current information whenever platform rules, post limits, best practi
 - Put metadata at the top of each output file.
 - Remove obvious AI-writing smell before finalizing, especially em dashes, generic section-marker prose, unsupported hype, and formulaic phrasing.
 - Validate output with `validate-social-output.mjs` when producing files.
+
+## Publication Metadata
+
+Lyrebird is licensed under Apache-2.0 for public distribution through skills.sh. The full license text is bundled at [LICENSE](LICENSE). UI-facing publication metadata lives in [agents/openai.yaml](agents/openai.yaml); no separate `skills.sh.json` is required for this repository at this time.

@@ -27,7 +27,8 @@ If no platform is specified, write all supported platforms: Blog, LinkedIn, Redd
 7. Create `social/<proposal-slug>/`.
 8. Find one appropriate high-definition, free-to-use image for the content:
    - prefer Unsplash, Lummi, Pexels, or another source with clear usage terms,
-   - if downloading is not possible, create image metadata instead,
+   - if downloading is possible, save the image file and an `image.md` metadata file,
+   - if downloading is not possible, create `image.md` metadata that points to the image URL,
    - record source URL, creator/credit if available, license or usage note, and alt text.
 9. Draft each requested platform in the voice from `VOICE.md`.
 10. Validate claims and fix clearly false or unsupported statements.
@@ -46,10 +47,24 @@ social/<proposal-slug>/
   linkedin.md
   reddit.md
   x.md
-  image.md or image file
+  image.md
+  <optional image file>
 ```
 
-If one platform is requested, create only that platform file plus image metadata or image file.
+If one platform is requested, create only that platform file plus `image.md` and any downloaded image file.
+
+## Image Metadata
+
+Write `image.md` using these exact key-value fields so source and usage rights remain auditable:
+
+```markdown
+source: https://example.com/image-page
+license: Unsplash License, free to use
+credit: Creator or source name if available
+alt: Short description of the image for accessibility
+```
+
+The `license` field must clearly name free-to-use terms such as Unsplash, Pexels, Lummi, Creative Commons, CC0, public domain, royalty-free, free to use, commercial use allowed, open license, or permissive usage. Do not use vague values like `unknown`, `TBD`, or a generic terms URL with no free-use language.
 
 ## Metadata Header
 
@@ -68,7 +83,15 @@ created: "YYYY-MM-DD"
 ---
 ```
 
-Use valid YAML. Keep `sources` as URLs or objects with `title`, `url`, and `accessed`.
+Use valid YAML. Keep `sources` as structured entries with `title`, `url`, `accessed`, and optional `supports` fields. The validator requires at least one factual evidence source with `accessed: YYYY-MM-DD`; image URLs belong in `image.md`, not `sources`.
+
+```yaml
+sources:
+  - title: "Source title"
+    url: "https://example.com/source"
+    accessed: "YYYY-MM-DD"
+    supports: "Claim or platform rule this source supports"
+```
 
 ## Platform Notes
 

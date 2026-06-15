@@ -21,8 +21,9 @@ Use `/lyrebird brainstorm [topic]` to produce 3-5 timely, defensible content tak
 4. Track source URLs, dates, and what each source supports.
 5. Generate 5-8 candidate takes internally.
 6. Run a steelman pass:
-   - If subagents are available and the user has allowed subagent work, ask a separate agent to challenge the candidate takes, strengthen the best ones, and propose replacements.
-   - If subagents are unavailable, perform a clearly separated adversarial review yourself.
+   - When subagent tools are available, spawn a separate agent to challenge the candidate takes, strengthen the best ones, and propose replacements. Give it only the topic, `VOICE.md` summary, sources, and candidate takes, not your preferred answers.
+   - Compare the original candidates and steelman output. Iterate until the main agent and steelman pass converge on 3-5 takes.
+   - If subagent tools are unavailable, say that explicitly in the response and perform a clearly separated adversarial review yourself.
 7. Reject takes that are:
    - obvious category filler,
    - unsupported by sources,

@@ -21,6 +21,18 @@ created: "YYYY-MM-DD"
 
 Allowed `platform` values: `blog`, `linkedin`, `reddit`, `x`.
 
+Use factual source entries with access dates:
+
+```yaml
+sources:
+  - title: "Source title"
+    url: "https://example.com/source"
+    accessed: "YYYY-MM-DD"
+    supports: "Claim or platform rule this source supports"
+```
+
+Do not put image CDN URLs in `sources`; record image source and license details in `image.md`.
+
 ## Blog
 
 File: `blog.md`

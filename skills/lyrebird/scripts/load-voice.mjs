@@ -39,10 +39,25 @@ export function loadVoice(cwd = process.cwd()) {
 }
 
 function firstExisting(dir, names) {
-  for (const name of names) {
-    const abs = path.join(dir, name);
-    if (fs.existsSync(abs)) return abs;
+  let entries;
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return null;
   }
+
+  for (const name of names) {
+    const exact = entries.find((entry) => entry === name);
+    if (exact) return path.join(dir, exact);
+  }
+
+  const lowerNames = new Set(names.map((name) => name.toLowerCase()));
+  for (const entry of entries) {
+    if (lowerNames.has(entry.toLowerCase())) {
+      return path.join(dir, entry);
+    }
+  }
+
   return null;
 }
 

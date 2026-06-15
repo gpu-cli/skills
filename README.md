@@ -24,6 +24,8 @@ Creates brand-aware content strategy and platform-native posts for Blog, LinkedI
 4. `/lyrebird write [platform?] [proposal]` writes `blog.md`, `linkedin.md`, `reddit.md`, and `x.md` by default, or one platform when specified
 5. `/lyrebird modify [platform] [post]` adapts an existing URL, file, or pasted post to another platform without adding an image
 
+**Path:** `skills/lyrebird`
+
 **Outputs:** `VOICE.md` for reusable voice context and `social/<proposal-slug>/` for generated post files. X output is always named `x.md`.
 
 ---
