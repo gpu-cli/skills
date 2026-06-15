@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const VALID_PLATFORMS = new Set(['blog', 'linkedin', 'reddit', 'x']);
 const PLATFORM_FILES = {
@@ -726,6 +727,19 @@ function stripSourcesSection(text) {
   return text.replace(/^## Sources\b[\s\S]*$/im, '');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare realpaths so validation still runs when invoked through a symlink
+// (skills.sh symlinks .claude/skills/<name> -> .agents/skills/<name>). Without
+// this, a symlinked invocation would exit 0 without validating anything.
+function isMainModule() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return fs.realpathSync(entry) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   main();
 }

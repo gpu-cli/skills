@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const VOICE_NAMES = ['VOICE.md', 'Voice.md', 'voice.md'];
 const FALLBACK_DIRS = ['.agents/context', 'docs'];
@@ -191,6 +192,19 @@ function cli() {
   console.log(JSON.stringify(loadVoice(process.cwd()), null, 2));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare realpaths so this still runs when invoked through a symlink
+// (skills.sh symlinks .claude/skills/<name> -> .agents/skills/<name>, which
+// makes process.argv[1] differ from the realpath-resolved import.meta.url).
+function isMainModule() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return fs.realpathSync(entry) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   cli();
 }

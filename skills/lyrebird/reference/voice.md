@@ -7,7 +7,7 @@ Create or refresh the root `VOICE.md` file that all other Lyrebird commands use.
 Run:
 
 ```bash
-node .claude/skills/lyrebird/scripts/load-voice.mjs
+node .agents/skills/lyrebird/scripts/load-voice.mjs
 ```
 
 Use the JSON response to determine whether `VOICE.md` exists and where it was found.

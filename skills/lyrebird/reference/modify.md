@@ -58,19 +58,19 @@ For inline output, include the same metadata header as `/lyrebird write`, but se
 If the adapted post is written from URL or pasted input, save the original content to a temporary file and pass it to the validator. This lets the validator distinguish preserved image metadata from newly added image metadata.
 
 ```bash
-node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-temp-path> --file <path> --platform <platform>
+node .agents/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-temp-path> --file <path> --platform <platform>
 ```
 
 When the original post is a local file, pass it directly:
 
 ```bash
-node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform>
+node .agents/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform>
 ```
 
 When `VOICE.md` enables UTM tracking, also pass the owned domains and the target platform's source token so the rewritten backlinks are checked. The `--utm-source` value is the new platform's token from the `utm` object in `load-voice.mjs` output:
 
 ```bash
-node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform> \
+node .agents/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform> \
   --owned-domains "example.com,blog.example.com" \
   --utm-required "utm_source,utm_medium,utm_campaign" \
   --utm-source "<target-platform-token>"

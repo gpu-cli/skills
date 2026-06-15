@@ -116,7 +116,7 @@ sources:
 Run:
 
 ```bash
-node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x
+node .agents/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x
 ```
 
 Pass only the requested platforms for single-platform output.
@@ -124,7 +124,7 @@ Pass only the requested platforms for single-platform output.
 When `VOICE.md` enables UTM tracking, also pass the owned domains, required params, and per-platform source map so backlinks are checked. Take the values from the `utm` object in `load-voice.mjs` output:
 
 ```bash
-node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x \
+node .agents/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x \
   --owned-domains "example.com,blog.example.com" \
   --utm-required "utm_source,utm_medium,utm_campaign" \
   --utm-source-map "blog=blog,linkedin=linkedin,reddit=reddit,x=x"
