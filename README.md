@@ -18,11 +18,13 @@ Creates brand-aware content strategy and platform-native posts for Blog, LinkedI
 
 **How it works:**
 
-1. `/lyrebird voice` interviews the user, inspects repo context, analyzes exemplars, and writes root `VOICE.md`
+1. `/lyrebird voice` interviews the user, inspects repo context, analyzes exemplars, and writes root `VOICE.md`, including an optional UTM link-tracking convention
 2. `/lyrebird brainstorm [topic]` researches current discussion and returns 3-5 steelmanned content takes
 3. `/lyrebird hone [idea]` turns a rough idea into a sourced proposal with thesis, argument outline, evidence, risks, and suggested platforms
 4. `/lyrebird write [platform?] [proposal]` writes `blog.md`, `linkedin.md`, `reddit.md`, and `x.md` by default, or one platform when specified
 5. `/lyrebird modify [platform] [post]` adapts an existing URL, file, or pasted post to another platform without adding an image
+
+**Link tracking:** When `VOICE.md` defines a UTM convention, `write` and `modify` tag backlinks to your own domains with `utm_*` parameters (`utm_source` set per platform, so a LinkedIn→X conversion updates the source). Third-party and citation links are never tagged.
 
 **Path:** `skills/lyrebird`
 
