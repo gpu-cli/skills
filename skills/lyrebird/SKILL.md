@@ -24,7 +24,7 @@ Before command-specific work:
 2. If the command is not `voice`, load `VOICE.md` with:
 
    ```bash
-   node {{scripts_path}}/load-voice.mjs
+   node .claude/skills/lyrebird/scripts/load-voice.mjs
    ```
 
    Consume the full JSON output. Do not pipe it through `head`, `tail`, `grep`, or `jq`.
@@ -60,7 +60,7 @@ Browse for current information whenever platform rules, post limits, best practi
 
 ## Global Output Rules
 
-- Use `skills/lyrebird` as the skill path.
+- Use `.claude/skills/lyrebird` as the skill path.
 - Use `x.md` for X output.
 - For `/lyrebird write`, default to Blog, LinkedIn, Reddit, and X when no platform is specified.
 - Write generated publishable output under `social/<proposal-slug>/`.

@@ -115,7 +115,7 @@ sources:
 Run:
 
 ```bash
-node {{scripts_path}}/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x
+node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x
 ```
 
 Pass only the requested platforms for single-platform output.

@@ -57,11 +57,11 @@ For inline output, include the same metadata header as `/lyrebird write`, but se
 If the adapted post is written from URL or pasted input, save the original content to a temporary file and pass it to the validator. This lets the validator distinguish preserved image metadata from newly added image metadata.
 
 ```bash
-node {{scripts_path}}/validate-social-output.mjs --mode modify --input <original-temp-path> --file <path> --platform <platform>
+node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-temp-path> --file <path> --platform <platform>
 ```
 
 When the original post is a local file, pass it directly:
 
 ```bash
-node {{scripts_path}}/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform>
+node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform>
 ```
