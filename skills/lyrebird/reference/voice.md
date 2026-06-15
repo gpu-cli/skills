@@ -51,6 +51,12 @@ Cover these areas:
 7. **Anti-Voice**
    - Ask what the content must never sound like.
    - Ask for banned phrases, claims, tones, comparisons, or tactics.
+8. **Link Tracking (UTM)**
+   - Do they tag backlinks to their own site with UTM parameters? If not, skip this section.
+   - Which domain(s) are theirs, so only owned destinations get tagged and third-party or citation links are left alone?
+   - What `utm_medium` and `utm_campaign` convention do they use? A common default is `social` for medium and the proposal slug for campaign.
+   - What `utm_source` token should represent each platform? Confirm the X token in particular, since teams use either `x` or `twitter`.
+   - Which parameters must appear on every owned backlink?
 
 Do not promise to clone a living writer. Extract transferable traits: pacing, density, humor, specificity, vocabulary, argument style, examples, and rhetorical moves.
 
@@ -88,6 +94,20 @@ Template:
 ### Reddit
 
 ### X
+
+## Link Tracking (UTM)
+
+Lyrebird reads this block to tag backlinks to your own destinations. Only links to `owned_domains` are tagged; third-party and citation links are left untouched. Omit the section or set `enabled: false` if you do not use UTM tracking.
+
+- enabled: true
+- owned_domains: example.com, blog.example.com
+- utm_medium: social
+- utm_campaign: [default campaign, often the proposal slug]
+- utm_source_blog: blog
+- utm_source_linkedin: linkedin
+- utm_source_reddit: reddit
+- utm_source_x: x
+- required: utm_source, utm_medium, utm_campaign
 
 ## Source Priorities
 

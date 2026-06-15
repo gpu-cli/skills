@@ -65,6 +65,7 @@ Browse for current information whenever platform rules, post limits, best practi
 - For `/lyrebird write`, default to Blog, LinkedIn, Reddit, and X when no platform is specified.
 - Write generated publishable output under `social/<proposal-slug>/`.
 - Put metadata at the top of each output file.
+- When a post backlinks to an owned destination listed in the `VOICE.md` `Link Tracking (UTM)` section, tag the link with UTM parameters using the platform's source token; never tag third-party or citation links. The `load-voice.mjs` output exposes the parsed config under `utm`.
 - Remove obvious AI-writing smell before finalizing, especially em dashes, generic section-marker prose, unsupported hype, and formulaic phrasing.
 - Validate output with `validate-social-output.mjs` when producing files.
 

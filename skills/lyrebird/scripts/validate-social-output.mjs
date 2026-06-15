@@ -56,6 +56,10 @@ function parseArgs(argv) {
     platform: null,
     platforms: null,
     xLimit: null,
+    'owned-domains': null,
+    'utm-required': null,
+    'utm-source': null,
+    'utm-source-map': null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -195,6 +199,7 @@ function validatePlatformFile(filePath, platform, args, failures) {
 
   validateEditorialBans(body, path.basename(filePath), failures);
   validateSourceEvidence(fields, body, path.basename(filePath), failures);
+  validateUtmLinks(body, platform, args, path.basename(filePath), failures);
 
   if (platform === 'x') {
     validateXThread(text, args, failures);
@@ -357,6 +362,79 @@ function isEvidenceSourceUrl(rawUrl) {
 
 function dedupe(values) {
   return [...new Set(values)];
+}
+
+// Opt-in: only runs when --owned-domains is passed. Checks that backlinks to the
+// user's own destinations carry the required UTM params and the correct per-platform
+// utm_source. Citation links (frontmatter sources and the ## Sources section) and
+// third-party links are intentionally never tagged, so they are excluded.
+function validateUtmLinks(body, platform, args, fileName, failures) {
+  const ownedDomains = parseCsvArg(args['owned-domains']);
+  if (ownedDomains.length === 0) return;
+
+  const requiredArg = parseCsvArg(args['utm-required']);
+  const required = requiredArg.length > 0 ? requiredArg : ['utm_source', 'utm_medium', 'utm_campaign'];
+  const expectedSource = resolveExpectedUtmSource(platform, args);
+
+  const scanned = stripSourcesSection(body);
+  for (const rawUrl of dedupe(extractUrls(scanned))) {
+    let parsed;
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      continue;
+    }
+    if (!isOwnedHost(parsed.hostname, ownedDomains)) continue;
+
+    const params = parsed.searchParams;
+    const missing = required.filter((name) => !String(params.get(name) || '').trim());
+    if (missing.length > 0) {
+      failures.push(`${fileName} backlink to owned destination is missing ${missing.join(', ')}: ${rawUrl}`);
+    }
+
+    const actualSource = params.get('utm_source');
+    if (expectedSource && actualSource && actualSource !== expectedSource) {
+      failures.push(`${fileName} backlink utm_source must be "${expectedSource}" for ${platform}, found "${actualSource}": ${rawUrl}`);
+    }
+  }
+}
+
+function parseCsvArg(value) {
+  if (!value || value === true) return [];
+  return String(value).split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function resolveExpectedUtmSource(platform, args) {
+  const map = parseUtmSourceMap(args['utm-source-map']);
+  if (map[platform]) return map[platform];
+  if (typeof args['utm-source'] === 'string' && args['utm-source'].trim()) {
+    return args['utm-source'].trim();
+  }
+  return null;
+}
+
+function parseUtmSourceMap(value) {
+  const map = {};
+  for (const pair of parseCsvArg(value)) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) continue;
+    const key = pair.slice(0, eq).trim().toLowerCase();
+    const token = pair.slice(eq + 1).trim();
+    if (key && token) map[key] = token;
+  }
+  return map;
+}
+
+function isOwnedHost(hostname, ownedDomains) {
+  const host = String(hostname).toLowerCase();
+  return ownedDomains.some((domain) => {
+    const normalized = domain
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^\*?\.?/, '')
+      .replace(/\/.*$/, '');
+    return Boolean(normalized) && (host === normalized || host.endsWith(`.${normalized}`));
+  });
 }
 
 function extractFrontmatter(text) {

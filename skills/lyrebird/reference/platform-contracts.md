@@ -94,6 +94,33 @@ Expected content:
 - Each reply must satisfy the current character limit discovered at runtime.
 - Links and media should be planned deliberately; do not stuff every reply with links.
 
+## Link Tracking (UTM)
+
+Apply UTM parameters only when `VOICE.md` has a `Link Tracking (UTM)` section with `enabled: true`. The `load-voice.mjs` output exposes the parsed config under `utm`.
+
+Rules:
+
+- Tag only links whose host matches a `utm.ownedDomains` entry (or a subdomain of one). Never tag third-party links or citation/source links; those stay clean.
+- Set `utm_source` to the token for the platform being written, using the per-platform map below as the default. `VOICE.md` overrides win.
+- Set `utm_medium` and `utm_campaign` from `VOICE.md`. When no campaign is configured, use the proposal slug.
+- Merge into the existing query string: keep other params, add `?` when none exists and `&` between params, and replace any stale `utm_*` value rather than stacking a duplicate.
+- Use lowercase, hyphenated tokens. URL-encode any spaces in a campaign value.
+
+Default per-platform `utm_source` tokens:
+
+| Platform | Default `utm_source` |
+|---|---|
+| blog | `blog` |
+| linkedin | `linkedin` |
+| reddit | `reddit` |
+| x | `x` (some teams prefer `twitter`; confirm in `VOICE.md`) |
+
+Platform link-handling notes:
+
+- X: the full tagged URL counts toward the character limit (the link is wrapped at publish time, but the validator counts the literal text), so keep campaign tokens short.
+- LinkedIn and Reddit pass query strings through unchanged.
+- Blog: tag only cross-links to other owned destinations; a configured `utm_source_blog` of `blog` with a `referral`-style medium is common.
+
 ## Runtime Checks
 
 Before finalizing:

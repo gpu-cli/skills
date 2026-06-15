@@ -31,11 +31,12 @@ If no platform is specified, write all supported platforms: Blog, LinkedIn, Redd
    - if downloading is not possible, create `image.md` metadata that points to the image URL,
    - record source URL, creator/credit if available, license or usage note, and alt text.
 9. Draft each requested platform in the voice from `VOICE.md`.
-10. Validate claims and fix clearly false or unsupported statements.
-11. Rephrase anything the intended audience is unlikely to understand.
-12. Remove AI-writing smell.
-13. Validate files with `validate-social-output.mjs`.
-14. Report created file paths and any claims that remain uncertain.
+10. Apply link tracking: when a post backlinks to an owned destination from the `VOICE.md` `Link Tracking (UTM)` config, append UTM parameters using the platform's `utm_source` token plus the configured `utm_medium` and `utm_campaign` (default the campaign to the proposal slug). Leave third-party and citation links untouched. Skip this step when UTM tracking is absent or `enabled: false`. See [platform-contracts.md](platform-contracts.md) for tokens and merge rules.
+11. Validate claims and fix clearly false or unsupported statements.
+12. Rephrase anything the intended audience is unlikely to understand.
+13. Remove AI-writing smell.
+14. Validate files with `validate-social-output.mjs`.
+15. Report created file paths and any claims that remain uncertain.
 
 ## Output Files
 
@@ -119,3 +120,12 @@ node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode write --d
 ```
 
 Pass only the requested platforms for single-platform output.
+
+When `VOICE.md` enables UTM tracking, also pass the owned domains, required params, and per-platform source map so backlinks are checked. Take the values from the `utm` object in `load-voice.mjs` output:
+
+```bash
+node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode write --dir social/<proposal-slug> --platforms blog,linkedin,reddit,x \
+  --owned-domains "example.com,blog.example.com" \
+  --utm-required "utm_source,utm_medium,utm_campaign" \
+  --utm-source-map "blog=blog,linkedin=linkedin,reddit=reddit,x=x"
+```

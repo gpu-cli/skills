@@ -27,10 +27,11 @@ Use `/lyrebird modify [platform] [post]` to adapt an existing post for one targe
 6. Browse for current target platform rules and best practices.
 7. Validate factual claims where needed. Fix clearly false claims.
 8. Adapt the argument and structure for the target platform.
-9. Rephrase anything the intended audience from `VOICE.md` is unlikely to understand.
-10. Remove AI-writing smell.
-11. Validate platform constraints.
-12. Output formatted markdown with metadata.
+9. Rewrite link tracking for the target platform: when a backlink points to an owned destination from `VOICE.md`, set `utm_source` to the target platform's token and align the other configured UTM params. Replace stale `utm_*` values instead of stacking duplicates, and leave third-party and citation links untouched. Skip when UTM tracking is absent or `enabled: false`. See [platform-contracts.md](platform-contracts.md).
+10. Rephrase anything the intended audience from `VOICE.md` is unlikely to understand.
+11. Remove AI-writing smell.
+12. Validate platform constraints.
+13. Output formatted markdown with metadata.
 
 ## Constraints
 
@@ -64,4 +65,13 @@ When the original post is a local file, pass it directly:
 
 ```bash
 node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform>
+```
+
+When `VOICE.md` enables UTM tracking, also pass the owned domains and the target platform's source token so the rewritten backlinks are checked. The `--utm-source` value is the new platform's token from the `utm` object in `load-voice.mjs` output:
+
+```bash
+node .claude/skills/lyrebird/scripts/validate-social-output.mjs --mode modify --input <original-path> --file <path> --platform <platform> \
+  --owned-domains "example.com,blog.example.com" \
+  --utm-required "utm_source,utm_medium,utm_campaign" \
+  --utm-source "<target-platform-token>"
 ```
