@@ -18,6 +18,7 @@ logic_repo_root() {
 
 logic_dir() {
   local root; root=$(logic_repo_root) || return 1
+  [ -z "$root" ] && return 1
   printf '%s/.logic' "$root"
 }
 
@@ -51,6 +52,66 @@ logic_actor() {
   printf 'unknown'
 }
 
+# --- git ref helpers ------------------------------------------------------
+
+# The repo's mainline ref, for range and merged-ness questions.
+logic_default_base() {
+  local r
+  for r in origin/main main origin/master master; do
+    if git rev-parse --verify -q "$r" >/dev/null 2>&1; then printf '%s' "$r"; return 0; fi
+  done
+  return 1
+}
+
+# Resolve a branch name to a usable git ref. Prints HEAD when the branch is the
+# current checkout (or unspecified). Fails when the name resolves to nothing —
+# callers must not silently fall back to HEAD, or they audit the wrong branch.
+logic_resolve_ref() {
+  local b="${1:-}"
+  if [ -z "$b" ] || [ "$b" = "$(logic_current_branch)" ]; then printf 'HEAD'; return 0; fi
+  if git rev-parse --verify -q "refs/heads/$b" >/dev/null 2>&1; then printf '%s' "$b"; return 0; fi
+  if git rev-parse --verify -q "refs/remotes/origin/$b" >/dev/null 2>&1; then printf 'origin/%s' "$b"; return 0; fi
+  if git rev-parse --verify -q "$b" >/dev/null 2>&1; then printf '%s' "$b"; return 0; fi
+  return 1
+}
+
+# --- bd capability --------------------------------------------------------
+
+# More than one bd can be installed, and a login shell (which is what git hooks
+# and GUI-launched tools get) may resolve a different binary than an interactive
+# shell. Older builds have no `bd query`, no `--metadata`, and no `decision`
+# type, so writes would fail silently. Probe once and cache per binary+version.
+# Prints: ok | incompatible | missing
+logic_bd_capability() {
+  logic_have bd || { printf 'missing'; return 0; }
+  local dir cache key ver ck cv verdict
+  dir="$(logic_dir 2>/dev/null)"
+  ver="$(bd --version 2>/dev/null | head -1)"
+  [ -z "$ver" ] && ver="$(bd version 2>/dev/null | head -1)"
+  key="$(command -v bd)|${ver}"
+  if [ -n "$dir" ] && [ -f "${dir}/.bd-capability" ]; then
+    cache="${dir}/.bd-capability"
+    ck=$(sed -n '1p' "$cache" 2>/dev/null)
+    cv=$(sed -n '2p' "$cache" 2>/dev/null)
+    if [ "$ck" = "$key" ] && [ -n "$cv" ]; then printf '%s' "$cv"; return 0; fi
+  fi
+  verdict="ok"
+  bd query --help >/dev/null 2>&1 || verdict="incompatible"
+  if [ "$verdict" = "ok" ]; then
+    bd create --help 2>&1 | grep -q -- '--metadata' || verdict="incompatible"
+  fi
+  if [ "$verdict" = "ok" ]; then
+    bd create --help 2>&1 | grep -q 'decision' || verdict="incompatible"
+  fi
+  if [ -n "$dir" ]; then
+    mkdir -p "$dir" 2>/dev/null
+    printf '%s\n%s\n' "$key" "$verdict" >"${dir}/.bd-capability" 2>/dev/null
+  fi
+  printf '%s' "$verdict"
+}
+
+logic_bd_ok() { [ "$(logic_bd_capability)" = "ok" ]; }
+
 # --- config ---------------------------------------------------------------
 
 # Read config.json; prints "{}" if missing or jq unavailable.
@@ -75,12 +136,20 @@ logic_glob_match() {
   esac
 }
 
+# The backend the config asks for (before any capability downgrade).
+logic_configured_storage() {
+  local logical="${1:-}" s
+  s=$(logic_config_get ".storageOverrides[\"$logical\"]" "")
+  [ -z "$s" ] && s=$(logic_config_get '.storage' 'beads')
+  printf '%s' "$s"
+}
+
 # Resolve tracking for the current checkout.
 # Prints three space-separated fields: STATE LOGICAL_BRANCH STORAGE
 #   STATE          on | off
 #   LOGICAL_BRANCH the branch rows are scoped to (the matched config key, or HEAD's branch)
-#   STORAGE        beads | tsv
-# Precedence: exact branch key > glob key > enabled-ancestor > default.
+#   STORAGE        beads | tsv  (effective, after capability downgrade)
+# Precedence: exact branch key > glob key > enabled unmerged ancestor > default.
 logic_effective_state() {
   local branch; branch=$(logic_current_branch)
   local default storage state logical
@@ -101,15 +170,19 @@ logic_effective_state() {
         [ -z "$key" ] && continue
         if logic_glob_match "$branch" "$key"; then matched="$key"; state="$val"; logical="$key"; break; fi
       done < <(printf '%s' "$raw" | jq -r '.branches // {} | to_entries[] | "\(.key)\t\(.value)"' 2>/dev/null)
-      # 3. enabled-ancestor (a derived worktree branch forked from an enabled branch)
+      # 3. enabled ancestor — a derived worktree branch forked from an enabled
+      #    branch. A branch already merged into the mainline is history, not a
+      #    live parent: inheriting from it would silently capture every later
+      #    main commit under the old feature's trail.
       if [ -z "$matched" ]; then
-        local anc
+        local anc dbase
+        dbase="$(logic_default_base 2>/dev/null)"
         while IFS= read -r anc; do
           [ -z "$anc" ] && continue
-          # skip globs here; only concrete branch refs can be ancestors
           case "$anc" in *'*'*|*'?'*) continue ;; esac
-          if git rev-parse --verify --quiet "$anc" >/dev/null 2>&1 \
-             && git merge-base --is-ancestor "$anc" HEAD 2>/dev/null; then
+          git rev-parse --verify --quiet "$anc" >/dev/null 2>&1 || continue
+          if [ -n "$dbase" ] && git merge-base --is-ancestor "$anc" "$dbase" 2>/dev/null; then continue; fi
+          if git merge-base --is-ancestor "$anc" HEAD 2>/dev/null; then
             state="on"; logical="$anc"; break
           fi
         done < <(printf '%s' "$raw" | jq -r '.branches // {} | to_entries[] | select(.value=="on") | .key' 2>/dev/null)
@@ -120,13 +193,68 @@ logic_effective_state() {
     [ -n "$ov" ] && storage="$ov"
   fi
 
-  # beads storage silently falls back to tsv when bd is unavailable
-  if [ "$storage" = "beads" ] && ! logic_have bd; then storage="tsv"; fi
+  # beads falls back to tsv when bd is absent OR too old for the API we use
+  if [ "$storage" = "beads" ] && ! logic_bd_ok; then storage="tsv"; fi
   printf '%s %s %s' "$state" "$logical" "$storage"
 }
 
 logic_is_tracked() {
   local s; s=$(logic_effective_state); [ "${s%% *}" = "on" ]
+}
+
+# --- warnings -------------------------------------------------------------
+# A silent backend downgrade is the failure mode we most need to avoid, so a
+# downgrade always leaves a trace: stderr for interactive callers, and a
+# deduped .logic/WARNINGS file for hooks (surfaced by the SessionStart hook).
+
+# Prints the reason the beads backend is unusable; returns 1 when it is fine.
+logic_backend_note() {
+  local cap; cap="$(logic_bd_capability)"
+  case "$cap" in
+    ok) return 1 ;;
+    missing)
+      printf 'logic: bd is not on PATH — decision rows are going to the TSV fallback at .logic/audit/.' ;;
+    *)
+      printf 'logic: the bd on PATH (%s) lacks the API this suite needs (bd query, --metadata, decision type) — rows are going to the TSV fallback at .logic/audit/. If bd works in your interactive shell, you likely have more than one install and a login shell resolves a different one.' \
+        "$(command -v bd 2>/dev/null)" ;;
+  esac
+  return 0
+}
+
+# 0 when the config asked for beads but we are effectively on tsv.
+logic_downgraded() {
+  local es logical storage
+  es=$(logic_effective_state)
+  logical=$(printf '%s' "$es" | awk '{print $2}')
+  storage=$(printf '%s' "$es" | awk '{print $3}')
+  [ "$storage" = "tsv" ] || return 1
+  [ "$(logic_configured_storage "$logical")" = "beads" ]
+}
+
+# Append a note to .logic/WARNINGS, deduped. Safe inside hooks.
+logic_record_note() {
+  local t="${1:-}" d f
+  [ -z "$t" ] && return 0
+  d="$(logic_dir 2>/dev/null)" || return 0
+  [ -z "$d" ] && return 0
+  mkdir -p "$d" 2>/dev/null
+  f="$d/WARNINGS"
+  if [ -f "$f" ] && grep -qF "$t" "$f" 2>/dev/null; then return 0; fi
+  printf '%s\n' "$t" >>"$f" 2>/dev/null
+  return 0
+}
+
+logic_record_warning() {
+  logic_downgraded || return 0
+  logic_record_note "$(logic_backend_note)"
+}
+
+# Interactive one-shot warning to stderr.
+logic_warn_stderr() {
+  logic_downgraded || return 0
+  local t; t="$(logic_backend_note)"
+  [ -n "$t" ] && printf '%s\n' "$t" >&2
+  return 0
 }
 
 # --- cell hygiene ---------------------------------------------------------
@@ -145,45 +273,36 @@ logic_sanitize_cell() {
 
 LOGIC_TSV_HEADER='ts	actor	phase	decision	why	evidence	result	kind	sha	worktree'
 
-# logic_log_row <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha>
-# kind: stub|manual|agent. Routes to beads or TSV per effective storage.
-# Prints the created row id (bead id, or the tsv path) on success.
-logic_log_row() {
+# _logic_log_beads <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <slug> <logical> <wt> <ts>
+_logic_log_beads() {
   local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
-  local es logical storage
-  es=$(logic_effective_state); logical=$(printf '%s' "$es" | awk '{print $2}'); storage=$(printf '%s' "$es" | awk '{print $3}')
-  local slug; slug=$(logic_slug "$logical")
-  local wt; wt=$(logic_repo_root)
-  local ts; ts=$(logic_now)
-
-  if [ "$storage" = "beads" ] && logic_have bd; then
-    local labels="logic:${slug}"
-    [ -z "$why" ] && labels="${labels},logic-stub"
-    local meta
-    if logic_have jq; then
-      meta=$(jq -nc \
-        --arg actor "$actor" --arg phase "$phase" --arg evidence "$evidence" \
-        --arg result "$result" --arg branch "$logical" --arg wt "$wt" \
-        --arg sha "$sha" --arg kind "$kind" --arg ts "$ts" \
-        '{actor:$actor,phase:$phase,evidence:$evidence,result:$result,branch:$branch,worktree:$wt,sha:$sha,kind:$kind,ts:$ts}')
-    else
-      meta="{\"actor\":\"$actor\",\"kind\":\"$kind\",\"sha\":\"$sha\",\"branch\":\"$logical\"}"
-    fi
-    local id
-    id=$(bd create --type=decision --priority=3 --silent \
-      --title="$decision" \
-      --description="${why:-"(pending why)"}" \
-      --labels="$labels" \
-      --metadata="$meta" 2>/dev/null)
-    if [ -n "$id" ]; then
-      bd close "$id" >/dev/null 2>&1
-      printf '%s' "$id"
-      return 0
-    fi
-    return 1
+  local slug="$9" logical="${10}" wt="${11}" ts="${12}"
+  local labels="logic:${slug}"
+  [ -z "$why" ] && labels="${labels},logic-stub"
+  local meta id
+  if logic_have jq; then
+    meta=$(jq -nc \
+      --arg actor "$actor" --arg phase "$phase" --arg evidence "$evidence" \
+      --arg result "$result" --arg branch "$logical" --arg wt "$wt" \
+      --arg sha "$sha" --arg kind "$kind" --arg ts "$ts" \
+      '{actor:$actor,phase:$phase,evidence:$evidence,result:$result,branch:$branch,worktree:$wt,sha:$sha,kind:$kind,ts:$ts}')
+  else
+    meta="{\"actor\":\"$actor\",\"kind\":\"$kind\",\"sha\":\"$sha\",\"branch\":\"$logical\"}"
   fi
+  id=$(bd create --type=decision --priority=3 --silent \
+    --title="$decision" \
+    --description="${why:-"(pending why)"}" \
+    --labels="$labels" \
+    --metadata="$meta" 2>/dev/null)
+  [ -z "$id" ] && return 1
+  bd close "$id" >/dev/null 2>&1
+  printf '%s' "$id"
+}
 
-  # TSV backend: one file per writer under .logic/audit/<slug>/<actor>.tsv
+# _logic_log_tsv <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <slug> <wt> <ts>
+_logic_log_tsv() {
+  local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
+  local slug="$9" wt="${10}" ts="${11}"
   local dir; dir="$(logic_dir)/audit/${slug}"
   mkdir -p "$dir" 2>/dev/null
   local file="${dir}/$(logic_slug "$actor").tsv"
@@ -203,30 +322,108 @@ logic_log_row() {
   printf '%s' "$file"
 }
 
-# Does a stub already exist for this commit SHA on the current logical branch?
-# Prints the bead id if found (beads backend only).
-logic_find_stub_by_sha() {
-  local sha="$1"
-  local es logical slug; es=$(logic_effective_state)
-  logical=$(printf '%s' "$es" | awk '{print $2}'); slug=$(logic_slug "$logical")
-  logic_have bd || return 1
-  logic_have jq || return 1
-  bd query "label=logic:${slug}" --all --json 2>/dev/null \
-    | jq -r --arg s "$sha" '.[] | select((.metadata.sha // "")==$s) | .id' 2>/dev/null \
-    | head -1
+# logic_log_row <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha>
+# Routes to beads or TSV per effective storage. If a beads write fails for any
+# reason, the row still lands — in TSV, in the same call — and a warning is
+# recorded. Losing a row silently is never acceptable.
+# Prints the created row id (bead id, or the tsv path).
+logic_log_row() {
+  local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
+  local es logical storage
+  es=$(logic_effective_state)
+  logical=$(printf '%s' "$es" | awk '{print $2}')
+  storage=$(printf '%s' "$es" | awk '{print $3}')
+  local slug; slug=$(logic_slug "$logical")
+  local wt; wt=$(logic_repo_root)
+  local ts; ts=$(logic_now)
+
+  if [ "$storage" = "beads" ]; then
+    local id
+    id=$(_logic_log_beads "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$slug" "$logical" "$wt" "$ts")
+    if [ -n "$id" ]; then printf '%s' "$id"; return 0; fi
+    logic_record_note "logic: a bd write failed; that decision row went to the TSV fallback at .logic/audit/ instead."
+  else
+    logic_record_warning
+  fi
+
+  _logic_log_tsv "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$slug" "$wt" "$ts"
 }
 
-# Enrich a stub: set its why (description) and drop the logic-stub label.
-# logic_enrich <bead-id> <why> [result]
-logic_enrich() {
-  local id="$1" why="$2" result="${3:-}"
-  logic_have bd || return 1
-  bd update "$id" --description "$why" >/dev/null 2>&1
-  bd label remove "$id" logic-stub >/dev/null 2>&1
-  if [ -n "$result" ] && logic_have jq; then
-    local cur; cur=$(bd show "$id" --json 2>/dev/null | jq -c '.metadata // {}' 2>/dev/null)
-    [ -z "$cur" ] && cur='{}'
-    local newmeta; newmeta=$(printf '%s' "$cur" | jq -c --arg r "$result" '.result=$r' 2>/dev/null)
-    [ -n "$newmeta" ] && bd update "$id" --metadata "$newmeta" >/dev/null 2>&1
+# --- finding and enriching stubs -----------------------------------------
+
+# Does a stub already exist for this commit SHA on the current logical branch?
+# Prints the bead id (beads) or the matching TSV line (tsv) if found.
+logic_find_stub_by_sha() {
+  local sha="$1"
+  local es logical storage slug
+  es=$(logic_effective_state)
+  logical=$(printf '%s' "$es" | awk '{print $2}')
+  storage=$(printf '%s' "$es" | awk '{print $3}')
+  slug=$(logic_slug "$logical")
+
+  if [ "$storage" = "beads" ] && logic_bd_ok && logic_have jq; then
+    bd query "label=logic:${slug}" --all --json 2>/dev/null \
+      | jq -r --arg s "$sha" '.[] | select((.metadata.sha // "")==$s) | .id' 2>/dev/null \
+      | head -1
+    return 0
   fi
+  logic_tsv_row_for_sha "$sha" "$slug"
+}
+
+# Prints the first TSV row (any kind) recorded for a SHA, or fails.
+logic_tsv_row_for_sha() {
+  local sha="$1" slug="$2" d f line
+  d="$(logic_dir)/audit/${slug}"
+  [ -d "$d" ] || return 1
+  for f in "$d"/*.tsv; do
+    [ -f "$f" ] || continue
+    line=$(awk -F'\t' -v s="$sha" 'NR>1 && $9==s {print; exit}' "$f")
+    if [ -n "$line" ]; then printf '%s' "$line"; return 0; fi
+  done
+  return 1
+}
+
+# Enrich a stub with its why.
+# beads: update the bead in place and drop the logic-stub label.
+# tsv:   append a superseding row carrying the same sha and decision (the TSV
+#        log is append-only; collect prefers the enriched row per sha+decision).
+# logic_enrich <bead-id-or-sha> <why> [result]
+logic_enrich() {
+  local ref="$1" why="$2" result="${3:-}"
+  local es logical storage slug
+  es=$(logic_effective_state)
+  logical=$(printf '%s' "$es" | awk '{print $2}')
+  storage=$(printf '%s' "$es" | awk '{print $3}')
+  slug=$(logic_slug "$logical")
+
+  if [ "$storage" = "beads" ] && logic_bd_ok; then
+    local id="$ref" resolved
+    # allow enriching by SHA
+    if logic_have jq; then
+      resolved=$(bd query "label=logic:${slug}" --all --json 2>/dev/null \
+        | jq -r --arg s "$ref" '.[] | select((.metadata.sha // "")==$s) | .id' 2>/dev/null | head -1)
+      [ -n "$resolved" ] && id="$resolved"
+    fi
+    bd update "$id" --description "$why" >/dev/null 2>&1 || return 1
+    bd label remove "$id" logic-stub >/dev/null 2>&1
+    if [ -n "$result" ] && logic_have jq; then
+      local cur newmeta
+      cur=$(bd show "$id" --json 2>/dev/null | jq -c '.metadata // {}' 2>/dev/null)
+      [ -z "$cur" ] && cur='{}'
+      newmeta=$(printf '%s' "$cur" | jq -c --arg r "$result" '.result=$r' 2>/dev/null)
+      [ -n "$newmeta" ] && bd update "$id" --metadata "$newmeta" >/dev/null 2>&1
+    fi
+    printf '%s' "$id"
+    return 0
+  fi
+
+  # TSV supersede
+  local line phase decision evidence actor
+  line=$(logic_tsv_row_for_sha "$ref" "$slug") || return 1
+  phase=$(printf '%s' "$line" | awk -F'\t' '{print $3}')
+  decision=$(printf '%s' "$line" | awk -F'\t' '{print $4}')
+  evidence=$(printf '%s' "$line" | awk -F'\t' '{print $6}')
+  actor=$(logic_actor)
+  _logic_log_tsv "enrich" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$ref" \
+    "$slug" "$(logic_repo_root)" "$(logic_now)"
 }

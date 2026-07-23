@@ -33,6 +33,9 @@ cat >"$LDIR/.gitignore" <<'GI'
 # TSV fallback logs are local by default; commit intentionally if you want a
 # shared trail visible in the PR.
 audit/
+# Machine-local: probed bd capability cache and one-shot warning spool.
+.bd-capability
+WARNINGS
 GI
 
 # 4. wire core.hooksPath (do not clobber a pre-existing, foreign hooksPath)
@@ -45,12 +48,17 @@ else
     \"\$(git rev-parse --show-toplevel)/.logic/githooks/post-commit\""
 fi
 
-# 5. backend availability
-if command -v bd >/dev/null 2>&1; then
-  backend="beads (bd found)"
-else
-  backend="TSV fallback (bd not on PATH — rows go to .logic/audit/)"
-fi
+# 5. backend availability — probe the actual API, not just the binary's presence
+cap="$(logic_bd_capability)"
+case "$cap" in
+  ok)
+    backend="beads — $(command -v bd)" ;;
+  missing)
+    backend="TSV fallback — bd is not on PATH; rows go to .logic/audit/" ;;
+  *)
+    backend="TSV fallback — the bd on PATH ($(command -v bd 2>/dev/null)) lacks the API this suite needs (bd query, --metadata, decision type).
+    If bd works in your interactive shell, you likely have more than one install and a login shell — which is what git hooks get — resolves the older one." ;;
+esac
 
 cat <<EOF
 logic runtime installed under .logic/

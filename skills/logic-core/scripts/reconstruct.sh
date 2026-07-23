@@ -7,6 +7,10 @@
 # Sources, in reliability order: commit messages + trailers, the diff grouped by
 # commit, beads task issues that mention the branch, and the PR body/comments.
 #
+# Everything is derived from the REQUESTED branch's ref, not the current
+# checkout — reconstructing an unmerged feature from a main checkout must return
+# that feature's history, not main's.
+#
 # Usage: reconstruct.sh [branch]
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,14 +23,16 @@ branch=""
 [ -n "${1:-}" ] && branch="$1"
 [ -z "$branch" ] && branch="$(logic_current_branch)"
 
-base=""
-for r in origin/main main origin/master master; do
-  if git rev-parse --verify -q "$r" >/dev/null 2>&1; then base="$r"; break; fi
-done
+ref=$(logic_resolve_ref "$branch") || {
+  echo "logic: cannot resolve branch '$branch' to a git ref (no local branch, no origin/$branch)." >&2
+  exit 1
+}
+
+base="$(logic_default_base 2>/dev/null)"
 mb=""
-[ -n "$base" ] && mb=$(git merge-base HEAD "$base" 2>/dev/null)
-range="HEAD"
-[ -n "$mb" ] && range="${mb}..HEAD"
+[ -n "$base" ] && mb=$(git merge-base "$ref" "$base" 2>/dev/null)
+range="$ref"
+[ -n "$mb" ] && range="${mb}..${ref}"
 
 # commits
 commits_json='[]'
@@ -53,13 +59,13 @@ fi
 # changed files (whole range)
 changed_json='[]'
 if [ -n "$mb" ]; then
-  changed_json=$(git diff --name-only "$mb"..HEAD 2>/dev/null | jq -R -s 'split("\n") | map(select(length>0))')
+  changed_json=$(git diff --name-only "$mb".."$ref" 2>/dev/null | jq -R -s 'split("\n") | map(select(length>0))')
 fi
 
 # beads task issues mentioning the branch
 bd_json='[]'
-if command -v bd >/dev/null 2>&1; then
-  bd_json=$(bd search "$branch" --json 2>/dev/null | jq '[.[] | {id, title, status, type, description}] ' 2>/dev/null)
+if logic_bd_ok; then
+  bd_json=$(bd search "$branch" --json 2>/dev/null | jq '[.[] | {id, title, status, type, description}]' 2>/dev/null)
   [ -z "$bd_json" ] && bd_json='[]'
 fi
 
@@ -71,7 +77,7 @@ if command -v gh >/dev/null 2>&1; then
 fi
 
 jq -nc \
-  --arg branch "$branch" --arg base "$base" --arg range "$range" \
+  --arg branch "$branch" --arg ref "$ref" --arg base "$base" --arg range "$range" \
   --argjson commits "$commits_json" --argjson changed "$changed_json" \
   --argjson bd "$bd_json" --argjson pr "$pr_json" \
-  '{branch:$branch, base:$base, range:$range, commits:$commits, changed_files:$changed, bd_tasks:$bd, pr:$pr}'
+  '{branch:$branch, ref:$ref, base:$base, range:$range, commits:$commits, changed_files:$changed, bd_tasks:$bd, pr:$pr}'

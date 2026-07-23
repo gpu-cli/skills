@@ -27,14 +27,12 @@ EOF
 fi
 slug=$(logic_slug "$branch")
 
-have_jq=0; command -v jq >/dev/null 2>&1 && have_jq=1
-if [ "$have_jq" -eq 0 ]; then
-  echo "logic: jq is required for collect" >&2; exit 1
-fi
+command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for collect" >&2; exit 1; }
+logic_warn_stderr
 
 # --- beads rows (single query covers every worktree via the shared server) ---
 beads_json='[]'
-if command -v bd >/dev/null 2>&1; then
+if logic_bd_ok; then
   beads_json=$(bd query "label=logic:${slug}" --all --json 2>/dev/null | jq '
     map({
       id: .id,
@@ -75,15 +73,27 @@ done
 
 tsv_json='[]'
 if [ -s "$tsv_data_file" ]; then
+  # Row identity includes a content component: two rows from the same actor in
+  # the same second with no SHA are distinct decisions and must both survive.
+  # Then collapse each (sha, decision) group to its enriched row — the TSV log
+  # is append-only, so enrichment arrives as a superseding row.
   tsv_json=$(sort -u "$tsv_data_file" | jq -R -s '
-    split("\n") | map(select(length > 0)) | map(split("\t")) | map({
-      id: ("tsv:" + (.[0]//"") + ":" + (.[1]//"") + ":" + (.[8]//"")),
+    def parse: split("\t") | {
+      id: ("tsv:" + (.[0]//"") + ":" + (.[1]//"") + ":" + (.[8]//"") + ":"
+           + ((((.[3]//"") + (.[4]//"")) | explode | add) // 0 | tostring)),
       ts:(.[0]//""), actor:(.[1]//""), phase:(.[2]//""), decision:(.[3]//""),
       why:(.[4]//""), evidence:(.[5]//""), result:(.[6]//""), kind:(.[7]//""),
       sha:(.[8]//""), worktree:(.[9]//""), branch:"",
       stub: (((.[4]//"")=="") or ((.[4]//"")=="(pending why)")),
       source:"tsv"
-    })' 2>/dev/null)
+    };
+    def collapse:
+      (map(select((.sha//"")!=""))
+        | group_by([.sha, .decision])
+        | map(([.[] | select(.stub | not)] | last) // last))
+      + map(select((.sha//"")==""));
+    split("\n") | map(select(length > 0)) | map(parse) | collapse
+  ' 2>/dev/null)
   [ -z "$tsv_json" ] && tsv_json='[]'
 fi
 rm -f "$tsv_list_file" "$tsv_data_file" 2>/dev/null

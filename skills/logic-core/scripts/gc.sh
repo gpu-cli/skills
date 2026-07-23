@@ -14,7 +14,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
 
 command -v jq >/dev/null 2>&1 || { echo "logic: jq required" >&2; exit 1; }
-command -v bd >/dev/null 2>&1 || { echo "logic: gc applies to the beads backend; bd not found." >&2; exit 0; }
+if ! logic_bd_ok; then
+  logic_warn_stderr
+  echo "logic: gc applies to the beads backend. TSV trails are append-only — remove .logic/audit/<branch>/ directly when a branch is abandoned." >&2
+  exit 0
+fi
 
 apply=0; branch=""
 for a in "$@"; do

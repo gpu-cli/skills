@@ -47,17 +47,16 @@ fi
 # Enrichment path.
 if [ -n "$enrich" ]; then
   [ -z "$why" ] && { echo "logic: --enrich requires --why" >&2; exit 1; }
-  id="$enrich"
-  # Allow enriching by SHA: resolve to the stub bead id.
-  case "$id" in
-    *[!0-9a-f]* ) : ;;                     # not a bare hex sha, treat as id
-    * ) resolved=$(logic_find_stub_by_sha "$id" 2>/dev/null); [ -n "$resolved" ] && id="$resolved" ;;
-  esac
-  if logic_enrich "$id" "$why" "$result"; then
-    echo "$id"
-  else
-    echo "logic: enrich failed for $enrich" >&2; exit 1
-  fi
+  logic_warn_stderr
+  # logic_enrich accepts a bead id or a SHA and handles both backends: beads
+  # updates in place, TSV appends a superseding row.
+  out=$(logic_enrich "$enrich" "$why" "$result") || {
+    echo "logic: could not enrich '$enrich' — no matching row found on branch '$logical'." >&2
+    exit 1
+  }
+  printf 'enriched %s\n' "$enrich"
+  printf '  why=%s\n' "$why"
+  [ -n "$out" ] && printf '  record=%s\n' "$out"
   exit 0
 fi
 

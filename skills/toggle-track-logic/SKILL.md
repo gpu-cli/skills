@@ -19,6 +19,11 @@ bash .agents/skills/logic-core/scripts/toggle.sh [on|off] [branch]
 
 - No `on|off` → flip the current effective state for the branch.
 - No branch → the current checkout's branch.
+- **Naming a branch other than the current checkout** writes the config change
+  here, where it cannot govern that branch yet. The command says so and tells
+  the user what to do: run it from that branch's worktree if one exists, or
+  commit the config change onto that branch. Relay that instruction; do not
+  report the toggle as already in effect there.
 - Enabling runs `install-hooks.sh`: it materializes `.logic/` (config, engine,
   git post-commit hook, Claude Code hook scripts), sets `core.hooksPath`, and
   prints the settings snippet for the optional enrichment gate.

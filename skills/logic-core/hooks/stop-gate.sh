@@ -26,8 +26,9 @@ $(logic_effective_state)
 EOF
   [ "$state" = "on" ] || exit 0
   # Enrichment gate is only meaningful for the beads backend (labels + update).
+  # An incompatible bd already downgrades storage to tsv upstream of this.
   [ "$storage" = "beads" ] || exit 0
-  command -v bd >/dev/null 2>&1 || exit 0
+  logic_bd_ok || exit 0
   command -v jq >/dev/null 2>&1 || exit 0
 
   slug=$(logic_slug "$logical")

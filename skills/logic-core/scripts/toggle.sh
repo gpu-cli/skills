@@ -61,7 +61,22 @@ fi
 state_uc=$(printf '%s' "$state" | tr '[:lower:]' '[:upper:]')
 echo "Decision-trail tracking is now ${state_uc} for '${logical}' (storage: ${storage})."
 if [ "$branch" != "$(logic_current_branch)" ]; then
-  echo "  (set for branch '${branch}', which is not the current checkout — it takes effect there)"
+  # Be honest: the edit landed in THIS checkout's config. It governs the target
+  # branch only once that config is present on it.
+  echo
+  echo "  NOTE: '${branch}' is not the current checkout. The config change was written to"
+  echo "  this checkout's .logic/config.json, so it does NOT apply on '${branch}' yet."
+  other_wt=$(git worktree list --porcelain 2>/dev/null \
+    | awk -v b="branch refs/heads/${branch}" '/^worktree /{w=$2} $0==b{print w; exit}')
+  if [ -n "$other_wt" ]; then
+    echo "  '${branch}' is checked out at: ${other_wt}"
+    echo "  Run /toggle-track-logic from there for it to take effect immediately."
+  else
+    echo "  Commit this change and get it onto '${branch}' for it to take effect:"
+    echo "    git add .logic/config.json && git commit -m \"chore: track ${branch}\""
+    echo "    # then merge or cherry-pick that commit into ${branch}, or re-run the toggle from a checkout of it"
+  fi
 fi
 echo "  config: $("$SCRIPT_DIR/config-edit.sh" path)"
+logic_warn_stderr
 [ -n "$installed_note" ] && { echo; echo "$installed_note"; }

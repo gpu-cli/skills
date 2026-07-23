@@ -12,6 +12,12 @@ Shows the decision trail for a branch as a reviewable table. Default output is
 the rendered table in the terminal; `--pr` also writes it into the PR
 description. Safe to run on any branch, including ones that predate tracking.
 
+When a branch is named, every step targets **that** branch — its commits, its
+diff, its rows — regardless of which branch is currently checked out. So
+`/show-logic other-feature` from `main` reports that feature's trail, not
+main's. If the name resolves to no ref, the helpers stop with an error rather
+than quietly falling back to the current checkout.
+
 All helper scripts live in `.agents/skills/logic-core/scripts/`.
 
 ## Procedure

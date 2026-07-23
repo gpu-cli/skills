@@ -51,7 +51,23 @@ server, and `bd` walks up from any worktree under `.claude/worktrees/` to the
 same `.beads`. `show-logic` therefore collects with one query; it also sweeps
 worktree TSV files for the fallback backend. When `bd` is absent or
 `storage=tsv`, rows go to per-writer TSV files (one log per writer — no merge
-conflicts).
+conflicts). TSV is append-only, so enrichment lands as a superseding
+`kind=enrich` row and readers collapse each `(sha, decision)` group.
+
+### Backend compatibility, and never failing silently
+
+More than one `bd` can be installed, and a **login shell — which is what git
+hooks get — may resolve a different binary than your interactive shell**. Older
+builds have no `bd query`, no `--metadata`, and no `decision` type, so writes
+would fail with no trace. `logic_bd_capability` probes the real API once per
+binary+version (cached in `.logic/.bd-capability`) and reports `ok`,
+`incompatible`, or `missing`. Anything but `ok` downgrades storage to TSV.
+
+A downgrade always leaves a trace: interactive helpers warn on stderr, hooks
+append a deduped line to `.logic/WARNINGS`, and the SessionStart hook surfaces
+that file once per session then clears it. If a beads write fails anyway, the
+row is still written — to TSV, in the same call. Losing a decision row quietly
+is the one outcome the design refuses.
 
 ## Capture compliance (three layers)
 

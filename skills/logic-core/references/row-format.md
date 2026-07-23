@@ -47,6 +47,13 @@ fields in metadata JSON. Reads use `bd query ... --all` to include closed rows.
 ts	actor	phase	decision	why	evidence	result	kind	sha	worktree
 ```
 
+The TSV log is strictly append-only, so **enrichment arrives as a superseding
+row**: a `kind=enrich` row carrying the same `sha` and `decision` as the stub it
+explains. Readers collapse each `(sha, decision)` group to its enriched row.
+Rows with no `sha` are never collapsed — two decisions logged in the same second
+by the same actor are distinct and both survive, because row identity includes a
+content component, not just timestamp and actor.
+
 Cells are single-line; the writer strips stray tabs/newlines and prefixes any
 cell starting with `=`, `+`, `-`, or `@` with a quote so a spreadsheet open can't
 execute it as a formula.

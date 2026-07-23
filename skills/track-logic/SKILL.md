@@ -79,7 +79,10 @@ bash .agents/skills/logic-core/scripts/log.sh --enrich <sha-or-bead-id> \
   --why "chose the streaming path so the HUD updates incrementally"
 ```
 
-Leave purely mechanical commits (formatting, renames) as stubs; gc removes them.
+This works on both backends: beads updates the record in place, and the TSV
+fallback appends a superseding row for the same commit (the TSV log is
+append-only). Leave purely mechanical commits (formatting, renames) as stubs;
+gc removes them.
 
 ## Capturing the user's decisions
 
