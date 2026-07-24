@@ -29,7 +29,7 @@
   author=$(git log -1 --format='%an' "$sha" 2>/dev/null)
   short=$(git rev-parse --short "$sha" 2>/dev/null)
 
-  logic_log_row "stub" "${author:-unknown}" "" "${subject:-"(no subject)"}" "" "commit ${short}" "" "$sha" \
+  logic_log_row "stub" "${author:-unknown}" "" "${subject:-"(no subject)"}" "" "commit ${short}" "" "$sha" "unknown" \
     >/dev/null 2>&1
 } >/dev/null 2>&1 || true
 

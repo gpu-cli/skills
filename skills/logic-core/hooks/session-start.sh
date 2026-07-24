@@ -19,7 +19,7 @@ $(logic_effective_state)
 EOF
   [ "$state" = "on" ] || exit 0
 
-  msg="Decision-trail tracking is ON for branch '${logical}' (storage: ${storage}). Log decision points as you work — a fork chosen, a unit finished with its check, a pivot or revert — with /track-logic \"<what> because <why>\" or the logic-core log helper. Commit stubs are captured automatically; give the ones that mattered a one-line 'why' before finishing. The row protocol lives in the track-logic skill."
+  msg="Decision-trail tracking is ON for branch '${logical}' (storage: ${storage}). Log decision points as you work — a fork chosen, a unit finished with its check, a pivot or revert — with /track-logic \"<what> because <why>\" --confidence <high|medium|low> or the logic-core log helper. Confidence is your perception, not a correctness score; commit stubs and unassessed legacy rows remain unknown. Commit stubs are captured automatically; give the ones that mattered a one-line 'why' and confidence before finishing. The row protocol lives in the track-logic skill."
 
   # Surface anything the hooks recorded silently (e.g. a backend downgrade),
   # then clear it so it is reported once per session rather than forever.

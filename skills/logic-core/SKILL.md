@@ -44,7 +44,7 @@ out of `bd ready`; every read uses `bd query ... --all` to include them):
 
 - title = decision, description = why
 - labels = `logic:<branch-slug>` (+ `logic-stub` while unenriched)
-- metadata = `{actor, phase, evidence, result, branch, worktree, sha, kind, ts}`
+- metadata = `{actor, phase, confidence, evidence, result, branch, worktree, sha, kind, ts}`
 
 Cross-worktree visibility is automatic: beads runs on a per-repo shared Dolt
 server, and `bd` walks up from any worktree under `.claude/worktrees/` to the
@@ -53,6 +53,8 @@ worktree TSV files for the fallback backend. When `bd` is absent or
 `storage=tsv`, rows go to per-writer TSV files (one log per writer — no merge
 conflicts). TSV is append-only, so enrichment lands as a superseding
 `kind=enrich` row and readers collapse each `(sha, decision)` group.
+Legacy rows and mechanical stubs have `confidence=unknown`; agents record
+`high`, `medium`, or `low` for consequential decisions.
 
 ### Backend compatibility, and never failing silently
 

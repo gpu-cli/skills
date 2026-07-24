@@ -206,7 +206,8 @@ Security audit and active remediation for agent skills. Analyzes SKILL.md instru
 ### logic — decision trails
 
 Keeps a reviewable decision trail for a branch worked by several agents and the
-user at once: what was decided, why, on what evidence, by whom. Adapted from
+user at once: what was decided, why, with what perceived confidence, on what
+evidence, and by whom. Adapted from
 Cursor's `show-me-your-work` skill into a beads-native, multi-agent, PR-oriented
 suite of three commands over a shared engine (`logic-core`).
 
@@ -214,19 +215,21 @@ suite of three commands over a shared engine (`logic-core`).
 
 - `/toggle-track-logic [on|off] [branch]` — turn tracking on/off for a branch;
   enabling installs the committed `.logic/` runtime and the capture hooks.
-- `/track-logic "<what> because <why>"` — record a decision (yours or the
-  user's). Owns the row protocol the suite shares.
-- `/show-logic [branch] [--pr]` — render the trail as a table; audit evidence
-  against the diff, flag cross-worktree conflicts, and — when tracking was off —
-  reconstruct a clearly-marked best-effort trail. `--pr` writes it into the PR.
+- `/track-logic "<what> because <why>" [--confidence high|medium|low]` — record
+  a decision (yours or the user's), including coarse perceived confidence. Owns
+  the row protocol the suite shares.
+- `/show-logic [branch] [--pr]` — render the trail as a table; validate evidence
+  against the diff, flag cross-worktree conflicts, add separate decision-quality
+  notes, and — when tracking was off — reconstruct a clearly-marked best-effort
+  trail. `--pr` writes it into the PR.
 
 **How it works:**
 
 1. **Capture can't fail.** A git `post-commit` hook records one stub row per
    commit on a tracked branch — deterministic, covers the user's commits and
    every worktree, so the trail is never empty. An optional Claude Code Stop hook
-   asks agents to add a one-line *why* to the stubs that mattered before
-   finishing.
+   asks agents to add a one-line *why* and perceived confidence to the stubs
+   that mattered before finishing.
 2. **Storage is beads-native.** Rows are `decision` beads labeled
    `logic:<branch>`, kept out of `bd ready`, visible across worktrees via the
    shared Dolt server. A per-writer TSV backend is the automatic fallback when
@@ -234,8 +237,9 @@ suite of three commands over a shared engine (`logic-core`).
 3. **Reading is honest.** `/show-logic` distinguishes tracked, partial, and
    untracked branches; reconstructs untracked history as inferred rows behind a
    warning banner (never written back); groups parallel worktrees into separate
-   tables with a three-tier conflict check; and runs a cross-model review before
-   any PR push.
+   tables with a three-tier conflict check; calls out assumption, evidence, and
+   confidence problems in a separate Decision quality section; and runs a
+   cross-model review before any PR push.
 4. **It cleans up after itself.** Rows whose branch was deleted unmerged are gc'd;
    merged history and manual rows are kept.
 
