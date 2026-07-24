@@ -37,7 +37,7 @@ EOF
   [ -z "$count" ] && count=0
 
   if [ "$count" -gt 0 ]; then
-    reason="Decision trail: ${count} commit stub(s) on '${logical}' have no recorded 'why' yet. Before finishing, enrich the ones that represent a real decision (a fork, a non-obvious approach, a revert): set the why via the logic-core enrich helper or restate it with /track-logic. Leave purely mechanical commits (formatting, renames, trivial fixes) as stubs — they expire in gc. If ALL ${count} are mechanical, say so briefly and stop."
+    reason="Decision trail: ${count} commit stub(s) on '${logical}' have no recorded 'why' yet. Before finishing, enrich the ones that represent a real decision (a fork, a non-obvious approach, a revert): set the why and your perceived confidence (high, medium, or low) via the logic-core enrich helper or restate it with /track-logic. Leave purely mechanical commits (formatting, renames, trivial fixes) as stubs with unknown confidence — they expire in gc. If ALL ${count} are mechanical, say so briefly and stop."
     printf '{"decision":"block","reason":%s}\n' "$(printf '%s' "$reason" | jq -Rs .)"
   fi
 } 2>/dev/null

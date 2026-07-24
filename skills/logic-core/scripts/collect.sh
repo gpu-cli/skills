@@ -43,6 +43,7 @@ if logic_bd_ok; then
       why: (if ((.labels // []) | index("logic-stub")) then "" else (.description // "") end),
       evidence: (.metadata.evidence // ""),
       result: (.metadata.result // ""),
+      confidence: (.metadata.confidence // "unknown"),
       kind: (.metadata.kind // ""),
       sha: (.metadata.sha // ""),
       worktree: (.metadata.worktree // ""),
@@ -77,13 +78,14 @@ if [ -s "$tsv_data_file" ]; then
   # the same second with no SHA are distinct decisions and must both survive.
   # Then collapse each (sha, decision) group to its enriched row — the TSV log
   # is append-only, so enrichment arrives as a superseding row.
-  tsv_json=$(sort -u "$tsv_data_file" | jq -R -s '
+  tsv_json=$(sort -u "$tsv_data_file" | jq -R -s --arg branch "$branch" '
     def parse: split("\t") | {
       id: ("tsv:" + (.[0]//"") + ":" + (.[1]//"") + ":" + (.[8]//"") + ":"
            + ((((.[3]//"") + (.[4]//"")) | explode | add) // 0 | tostring)),
       ts:(.[0]//""), actor:(.[1]//""), phase:(.[2]//""), decision:(.[3]//""),
       why:(.[4]//""), evidence:(.[5]//""), result:(.[6]//""), kind:(.[7]//""),
-      sha:(.[8]//""), worktree:(.[9]//""), branch:"",
+      sha:(.[8]//""), worktree:(.[9]//""), branch:$branch,
+      confidence:(.[10]//"unknown"),
       stub: (((.[4]//"")=="") or ((.[4]//"")=="(pending why)")),
       source:"tsv"
     };
@@ -102,8 +104,8 @@ merged=$(printf '%s\n%s\n' "$beads_json" "$tsv_json" | jq -s 'add | unique_by(.i
 [ -z "$merged" ] && merged='[]'
 
 if [ "$fmt" = "tsv" ]; then
-  printf 'ts\tactor\tphase\tdecision\twhy\tevidence\tresult\tkind\tsha\tworktree\tsource\n'
-  printf '%s' "$merged" | jq -r '.[] | [.ts,.actor,.phase,.decision,.why,.evidence,.result,.kind,.sha,.worktree,.source] | @tsv'
+  printf 'ts\tactor\tphase\tdecision\twhy\tevidence\tresult\tkind\tsha\tworktree\tconfidence\tsource\n'
+  printf '%s' "$merged" | jq -r '.[] | [.ts,.actor,.phase,.decision,.why,.evidence,.result,.kind,.sha,.worktree,.confidence,.source] | @tsv'
 else
   printf '%s\n' "$merged"
 fi

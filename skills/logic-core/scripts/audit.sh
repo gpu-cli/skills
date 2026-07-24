@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: git-evidence audit of a branch's decision rows.
+# logic-core: git-evidence resolution and coverage check for decision rows.
 #
 # Replaces the transcript audit of the original show-me-your-work skill with an
 # artifact that always exists: the git history. Checks that each row's evidence
@@ -38,7 +38,7 @@ base="$(logic_default_base 2>/dev/null)"
 mb=""
 [ -n "$base" ] && mb=$(git merge-base "$ref" "$base" 2>/dev/null)
 
-echo "## Evidence audit — ${branch}"
+echo "## Evidence resolution and coverage — ${branch}"
 echo
 if [ -z "$mb" ]; then
   echo "_No base ref (main/master) found; range checks limited to reachability from ${ref}._"

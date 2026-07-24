@@ -130,6 +130,7 @@ logic_config_get() {
 
 # Glob match: does branch $1 match config key pattern $2 (supports * and ?).
 logic_glob_match() {
+  # shellcheck disable=SC2254 # Config keys intentionally act as glob patterns.
   case "$1" in
     $2) return 0 ;;
     *) return 1 ;;
@@ -271,23 +272,32 @@ logic_sanitize_cell() {
 
 # --- logging a row --------------------------------------------------------
 
-LOGIC_TSV_HEADER='ts	actor	phase	decision	why	evidence	result	kind	sha	worktree'
+LOGIC_TSV_HEADER='ts	actor	phase	decision	why	evidence	result	kind	sha	worktree	confidence'
 
-# _logic_log_beads <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <slug> <logical> <wt> <ts>
+# Coarse by design: confidence is the actor's assessment, not a correctness score.
+logic_normalize_confidence() {
+  case "${1:-unknown}" in
+    high|medium|low|unknown) printf '%s' "${1:-unknown}" ;;
+    *) printf 'unknown' ;;
+  esac
+}
+
+# _logic_log_beads <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <confidence> <slug> <logical> <wt> <ts>
 _logic_log_beads() {
   local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
-  local slug="$9" logical="${10}" wt="${11}" ts="${12}"
+  local confidence="$9" slug="${10}" logical="${11}" wt="${12}" ts="${13}"
   local labels="logic:${slug}"
   [ -z "$why" ] && labels="${labels},logic-stub"
   local meta id
   if logic_have jq; then
     meta=$(jq -nc \
       --arg actor "$actor" --arg phase "$phase" --arg evidence "$evidence" \
-      --arg result "$result" --arg branch "$logical" --arg wt "$wt" \
+      --arg result "$result" --arg confidence "$confidence" \
+      --arg branch "$logical" --arg wt "$wt" \
       --arg sha "$sha" --arg kind "$kind" --arg ts "$ts" \
-      '{actor:$actor,phase:$phase,evidence:$evidence,result:$result,branch:$branch,worktree:$wt,sha:$sha,kind:$kind,ts:$ts}')
+      '{actor:$actor,phase:$phase,evidence:$evidence,result:$result,confidence:$confidence,branch:$branch,worktree:$wt,sha:$sha,kind:$kind,ts:$ts}')
   else
-    meta="{\"actor\":\"$actor\",\"kind\":\"$kind\",\"sha\":\"$sha\",\"branch\":\"$logical\"}"
+    meta="{\"actor\":\"$actor\",\"kind\":\"$kind\",\"sha\":\"$sha\",\"branch\":\"$logical\",\"confidence\":\"$confidence\"}"
   fi
   id=$(bd create --type=decision --priority=3 --silent \
     --title="$decision" \
@@ -299,15 +309,16 @@ _logic_log_beads() {
   printf '%s' "$id"
 }
 
-# _logic_log_tsv <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <slug> <wt> <ts>
+# _logic_log_tsv <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> <confidence> <slug> <wt> <ts>
 _logic_log_tsv() {
   local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
-  local slug="$9" wt="${10}" ts="${11}"
+  local confidence="$9" slug="${10}" wt="${11}" ts="${12}"
   local dir; dir="$(logic_dir)/audit/${slug}"
   mkdir -p "$dir" 2>/dev/null
-  local file="${dir}/$(logic_slug "$actor").tsv"
+  local file
+  file="${dir}/$(logic_slug "$actor").tsv"
   if [ ! -f "$file" ]; then printf '%s\n' "$LOGIC_TSV_HEADER" >"$file"; fi
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$(logic_sanitize_cell "$ts")" \
     "$(logic_sanitize_cell "$actor")" \
     "$(logic_sanitize_cell "$phase")" \
@@ -318,17 +329,19 @@ _logic_log_tsv() {
     "$(logic_sanitize_cell "$kind")" \
     "$(logic_sanitize_cell "$sha")" \
     "$(logic_sanitize_cell "$wt")" \
+    "$(logic_sanitize_cell "$confidence")" \
     >>"$file"
   printf '%s' "$file"
 }
 
-# logic_log_row <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha>
+# logic_log_row <kind> <actor> <phase> <decision> <why> <evidence> <result> <sha> [confidence]
 # Routes to beads or TSV per effective storage. If a beads write fails for any
 # reason, the row still lands — in TSV, in the same call — and a warning is
 # recorded. Losing a row silently is never acceptable.
 # Prints the created row id (bead id, or the tsv path).
 logic_log_row() {
   local kind="$1" actor="$2" phase="$3" decision="$4" why="$5" evidence="$6" result="$7" sha="$8"
+  local confidence; confidence=$(logic_normalize_confidence "${9:-unknown}")
   local es logical storage
   es=$(logic_effective_state)
   logical=$(printf '%s' "$es" | awk '{print $2}')
@@ -339,14 +352,14 @@ logic_log_row() {
 
   if [ "$storage" = "beads" ]; then
     local id
-    id=$(_logic_log_beads "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$slug" "$logical" "$wt" "$ts")
+    id=$(_logic_log_beads "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$confidence" "$slug" "$logical" "$wt" "$ts")
     if [ -n "$id" ]; then printf '%s' "$id"; return 0; fi
     logic_record_note "logic: a bd write failed; that decision row went to the TSV fallback at .logic/audit/ instead."
   else
     logic_record_warning
   fi
 
-  _logic_log_tsv "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$slug" "$wt" "$ts"
+  _logic_log_tsv "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$confidence" "$slug" "$wt" "$ts"
 }
 
 # --- finding and enriching stubs -----------------------------------------
@@ -387,9 +400,10 @@ logic_tsv_row_for_sha() {
 # beads: update the bead in place and drop the logic-stub label.
 # tsv:   append a superseding row carrying the same sha and decision (the TSV
 #        log is append-only; collect prefers the enriched row per sha+decision).
-# logic_enrich <bead-id-or-sha> <why> [result]
+# logic_enrich <bead-id-or-sha> <why> [result] [confidence]
 logic_enrich() {
-  local ref="$1" why="$2" result="${3:-}"
+  local ref="$1" why="$2" result="${3:-}" confidence="${4:-}"
+  [ -n "$confidence" ] && confidence=$(logic_normalize_confidence "$confidence")
   local es logical storage slug
   es=$(logic_effective_state)
   logical=$(printf '%s' "$es" | awk '{print $2}')
@@ -406,11 +420,13 @@ logic_enrich() {
     fi
     bd update "$id" --description "$why" >/dev/null 2>&1 || return 1
     bd label remove "$id" logic-stub >/dev/null 2>&1
-    if [ -n "$result" ] && logic_have jq; then
+    if { [ -n "$result" ] || [ -n "$confidence" ]; } && logic_have jq; then
       local cur newmeta
       cur=$(bd show "$id" --json 2>/dev/null | jq -c '.metadata // {}' 2>/dev/null)
       [ -z "$cur" ] && cur='{}'
-      newmeta=$(printf '%s' "$cur" | jq -c --arg r "$result" '.result=$r' 2>/dev/null)
+      newmeta=$(printf '%s' "$cur" | jq -c --arg r "$result" --arg c "$confidence" '
+        (if $r != "" then .result=$r else . end)
+        | (if $c != "" then .confidence=$c else . end)' 2>/dev/null)
       [ -n "$newmeta" ] && bd update "$id" --metadata "$newmeta" >/dev/null 2>&1
     fi
     printf '%s' "$id"
@@ -418,12 +434,14 @@ logic_enrich() {
   fi
 
   # TSV supersede
-  local line phase decision evidence actor
+  local line phase decision evidence actor existing_confidence
   line=$(logic_tsv_row_for_sha "$ref" "$slug") || return 1
   phase=$(printf '%s' "$line" | awk -F'\t' '{print $3}')
   decision=$(printf '%s' "$line" | awk -F'\t' '{print $4}')
   evidence=$(printf '%s' "$line" | awk -F'\t' '{print $6}')
+  existing_confidence=$(printf '%s' "$line" | awk -F'\t' '{print $11}')
+  [ -z "$confidence" ] && confidence="${existing_confidence:-unknown}"
   actor=$(logic_actor)
-  _logic_log_tsv "enrich" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$ref" \
+  _logic_log_tsv "enrich" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$ref" "$confidence" \
     "$slug" "$(logic_repo_root)" "$(logic_now)"
 }

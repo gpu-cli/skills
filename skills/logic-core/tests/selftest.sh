@@ -60,20 +60,40 @@ assert "stub TSV dir exists" "[ -d '$tsv' ]"
 rows=$(cat "$tsv"/*.tsv 2>/dev/null)
 assert_grep "stub row has commit subject" "add widget" "$rows"
 assert_grep "stub row is a stub kind"     "stub"       "$rows"
+assert_grep "stub row confidence is unknown" $'\tunknown$' "$rows"
 
 # --- manual logging adds an enriched row -----------------------------------
-mlog=$(bash "$SK/log.sh" --decision "kept Metal" --why "Canvas dropped frames" --actor user --phase render 2>&1)
+mlog=$(bash "$SK/log.sh" --decision "kept Metal" --why "Canvas dropped frames" \
+  --actor user --phase render --confidence medium 2>&1)
 assert_grep "manual log confirms" "logged" "$mlog"
+assert_grep "manual log echoes confidence" "confidence=medium" "$mlog"
+if bash "$SK/log.sh" --decision "bad confidence" --confidence certain >/dev/null 2>&1; then
+  bad "invalid confidence is rejected"
+else
+  ok "invalid confidence is rejected"
+fi
 
 # --- collect + render ------------------------------------------------------
 collected=$(bash "$SK/collect.sh" feature/widget)
 n=$(printf '%s' "$collected" | jq 'length' 2>/dev/null)
 assert "collect returns >=2 rows" "[ ${n:-0} -ge 2 ]"
 assert_grep "collect has manual why" "Canvas dropped frames" "$collected"
+mc=$(printf '%s' "$collected" | jq -r '[.[] | select(.decision=="kept Metal")][0].confidence')
+assert "collect preserves perceived confidence" "[ '$mc' = medium ]"
+mb=$(printf '%s' "$collected" | jq -r '[.[] | select(.decision=="kept Metal")][0].branch')
+assert "TSV collection preserves logical branch" "[ '$mb' = feature/widget ]"
 
 rendered=$(printf '%s' "$collected" | bash "$SK/render.sh" --title "Trail")
 assert_grep "render has a table header" "| ts | actor | phase | decision |" "$rendered"
+assert_grep "render includes confidence column" "| confidence | evidence |" "$rendered"
 assert_grep "render flags the stub"     "no why" "$rendered"
+
+# --- old ten-column TSV rows remain readable ------------------------------
+printf 'ts\tactor\tphase\tdecision\twhy\tevidence\tresult\tkind\tsha\tworktree\n2026-01-01T00:00:00Z\tlegacy\tcore\tlegacy choice\tlegacy why\t\topen\tmanual\t\t%s\n' \
+  "$TMP/repo" >"$tsv/legacy.tsv"
+legacy_collected=$(bash "$SK/collect.sh" feature/widget)
+lc=$(printf '%s' "$legacy_collected" | jq -r '[.[] | select(.decision=="legacy choice")][0].confidence')
+assert "legacy TSV row defaults confidence to unknown" "[ '$lc' = unknown ]"
 
 # --- ancestry: an unmerged derived branch resolves to its logical branch ----
 git checkout -q -b feature/widget-agent1
@@ -83,7 +103,7 @@ assert_grep "derived branch is tracked (on)" "^on " "$anc"
 git checkout -q feature/widget
 
 audit=$(bash "$SK/audit.sh" feature/widget 2>&1)
-assert_grep "audit produces a report" "Evidence audit" "$audit"
+assert_grep "audit produces a report" "Evidence resolution and coverage" "$audit"
 
 # ===========================================================================
 # Regressions for the Codex review fixes (skills-uxf)
@@ -108,6 +128,35 @@ st=$(PATH="$TMP/fakebin:$PATH" bash -c "rm -f .logic/.bd-capability; . '$SK/lib.
 assert_grep "incompatible bd downgrades storage to tsv" "tsv$" "$st"
 warn=$(PATH="$TMP/fakebin:$PATH" bash -c "rm -f .logic/.bd-capability; . '$SK/lib.sh'; logic_warn_stderr" 2>&1)
 assert_grep "the downgrade is announced, never silent" "TSV fallback" "$warn"
+
+# A compatible beads backend receives confidence in decision metadata.
+cat > "$TMP/fakebin/bd" <<'FAKE'
+#!/bin/sh
+case "$1" in
+  --version|version) echo "bd version selftest-compatible"; exit 0 ;;
+  query)
+    [ "${2:-}" = "--help" ] && exit 0
+    echo '[]'; exit 0
+    ;;
+  create)
+    if [ "${2:-}" = "--help" ]; then echo "Usage: bd create --metadata TYPE decision"; exit 0; fi
+    printf '%s\n' "$@" >>"${FAKE_BD_LOG:?}"
+    echo "skills-selftest"
+    exit 0
+    ;;
+  close|update|label) exit 0 ;;
+esac
+exit 0
+FAKE
+chmod +x "$TMP/fakebin/bd"
+rm -f .logic/.bd-capability "$TMP/fake-bd.log"
+blog=$(FAKE_BD_LOG="$TMP/fake-bd.log" PATH="$TMP/fakebin:$PATH" \
+  bash "$SK/log.sh" --decision "beads confidence" --why "exercise metadata" \
+    --confidence high 2>&1)
+assert_grep "compatible beads log succeeds" "logged skills-selftest" "$blog"
+bmeta=$(cat "$TMP/fake-bd.log" 2>/dev/null)
+assert_grep "beads metadata carries confidence" '"confidence":"high"' "$bmeta"
+
 bash "$SK/config-edit.sh" set storage tsv >/dev/null
 rm -f .logic/.bd-capability
 
@@ -144,12 +193,15 @@ sha2=$(git rev-parse HEAD)
 c=$(bash "$SK/collect.sh" feature/widget)
 before=$(printf '%s' "$c" | jq --arg s "$sha2" '[.[] | select(.sha==$s)] | length')
 assert "stub captured for the new commit" "[ ${before:-0} -eq 1 ]"
-bash "$SK/log.sh" --enrich "$sha2" --why "needed a second pass for the highlight" >/dev/null 2>&1
+bash "$SK/log.sh" --enrich "$sha2" --why "needed a second pass for the highlight" \
+  --confidence high >/dev/null 2>&1
 c2=$(bash "$SK/collect.sh" feature/widget)
 after=$(printf '%s' "$c2" | jq --arg s "$sha2" '[.[] | select(.sha==$s)] | length')
 assert "enrichment supersedes rather than duplicating" "[ ${after:-0} -eq 1 ]"
 why2=$(printf '%s' "$c2" | jq -r --arg s "$sha2" '[.[] | select(.sha==$s)][0].why')
 assert_grep "the enriched why is what survives" "second pass" "$why2"
+conf2=$(printf '%s' "$c2" | jq -r --arg s "$sha2" '[.[] | select(.sha==$s)][0].confidence')
+assert "enrichment records confidence" "[ '$conf2' = high ]"
 
 # uxf.7 — two distinct rows in the same second must both survive.
 bash "$SK/log.sh" --decision "first same-second call"  --why "a" --actor sameactor >/dev/null 2>&1

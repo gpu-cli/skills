@@ -52,11 +52,11 @@ emit_table() {
   echo "### ${heading}"
   [ -n "$branch" ] && echo "_branch: ${branch} — actors: ${actors}_" || echo "_actors: ${actors}_"
   echo
-  echo "| ts | actor | phase | decision | why | evidence | result |"
-  echo "|---|---|---|---|---|---|---|"
+  echo "| ts | actor | phase | decision | why | confidence | evidence | result |"
+  echo "|---|---|---|---|---|---|---|---|"
   printf '%s' "$data" | jq -r "
     $sel | sort_by(.ts) | .[] |
-    \"| \(.ts) | \(.actor) | \(.phase) | \(.decision|gsub(\"\\\\|\";\"\\\\|\")) | \(if .stub then \"⚠ (no why — stub)\" else (.why|gsub(\"\\\\|\";\"\\\\|\")) end) | \(.evidence) | \(.result) |\""
+    \"| \(.ts) | \(.actor) | \(.phase) | \(.decision|gsub(\"\\\\|\";\"\\\\|\")) | \(if .stub then \"⚠ (no why — stub)\" else (.why|gsub(\"\\\\|\";\"\\\\|\")) end) | \(.confidence // \"unknown\") | \(.evidence) | \(.result) |\""
   echo
 }
 
