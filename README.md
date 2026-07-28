@@ -4,6 +4,15 @@ A collection of AI agent skills we're collecting as we find gaps and needs in ou
 
 ## Installation
 
+Install one skill into the current project:
+
+```bash
+npx skills add gpu-cli/skills --skill logic
+npx skills add gpu-cli/skills --skill lyrebird
+```
+
+Or install the whole collection:
+
 ```bash
 npx skills add gpu-cli/skills
 ```
@@ -230,17 +239,17 @@ Security audit and active remediation for agent skills. Analyzes SKILL.md instru
 Keeps a reviewable decision trail for a branch worked by several agents and the
 user at once: what was decided, why, with what perceived confidence, on what
 evidence, and by whom. Adapted from
-Cursor's `show-me-your-work` skill into a beads-native, multi-agent, PR-oriented
-suite of three commands over a shared engine (`logic-core`).
+Cursor's `show-me-your-work` skill into one beads-native, multi-agent,
+PR-oriented skill with three subcommands.
 
 **Invoke:**
 
-- `/toggle-track-logic [on|off] [branch]` — turn tracking on/off for a branch;
+- `/logic toggle [on|off] [branch]` — turn tracking on/off for a branch;
   enabling installs the committed `.logic/` runtime and the capture hooks.
-- `/track-logic "<what> because <why>" [--confidence high|medium|low]` — record
+- `/logic track "<what> because <why>" [--confidence high|medium|low]` — record
   a decision (yours or the user's), including coarse perceived confidence. Owns
   the row protocol the suite shares.
-- `/show-logic [branch] [--pr]` — render the trail as a table; validate evidence
+- `/logic show [branch] [--pr]` — render the trail as a table; validate evidence
   against the diff, flag cross-worktree conflicts, add separate decision-quality
   notes, and — when tracking was off — reconstruct a clearly-marked best-effort
   trail. `--pr` writes it into the PR.
@@ -256,7 +265,7 @@ suite of three commands over a shared engine (`logic-core`).
    `logic:<branch>`, kept out of `bd ready`, visible across worktrees via the
    shared Dolt server. A per-writer TSV backend is the automatic fallback when
    `bd` is absent.
-3. **Reading is honest.** `/show-logic` distinguishes tracked, partial, and
+3. **Reading is honest.** `/logic show` distinguishes tracked, partial, and
    untracked branches; reconstructs untracked history as inferred rows behind a
    warning banner (never written back); groups parallel worktrees into separate
    tables with a three-tier conflict check; calls out assumption, evidence, and
@@ -268,4 +277,4 @@ suite of three commands over a shared engine (`logic-core`).
 **Requires:** `git`; `jq` and `bd` (beads) for the default backend; `gh` for
 `--pr`. Degrades to a TSV trail without `bd`.
 
-**Test:** `bash skills/logic-core/tests/selftest.sh`
+**Test:** `bash skills/logic/tests/selftest.sh`

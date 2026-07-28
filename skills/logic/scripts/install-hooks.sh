@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: materialize the committed .logic/ runtime and wire git hooks.
+# logic: materialize the committed .logic/ runtime and wire git hooks.
 #
 # Copies the engine, the git post-commit hook, and the Claude Code hook scripts
 # into .logic/ (committed, so they survive git worktrees where the skill itself

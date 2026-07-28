@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: gather raw material for reconstructing a decision trail when
+# logic: gather raw material for reconstructing a decision trail when
 # tracking was off. Emits JSON only — it never writes rows. The model turns this
 # into inferred rows (actor="inferred", why phrased as a hypothesis), shown
 # behind a warning banner.

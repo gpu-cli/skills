@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# logic-core: log or enrich a decision row.
+# logic: log or enrich a decision row.
 #
-# Log a new row (used by /track-logic and by agents at decision points):
+# Log a new row (used by /logic track and by agents at decision points):
 #   log.sh --decision "..." [--why "..."] [--phase "..."] [--evidence "..."] \
 #          [--result "..."] [--confidence high|medium|low|unknown] \
 #          [--actor "..."] [--kind manual|agent] [--sha <sha>]
@@ -47,7 +47,7 @@ read -r state logical _storage <<EOF
 $(logic_effective_state)
 EOF
 if [ "$state" != "on" ] && [ -z "${LOGIC_FORCE:-}" ]; then
-  echo "logic: tracking is OFF for this branch; not logging. Enable with /toggle-track-logic on (or set LOGIC_FORCE=1)." >&2
+  echo "logic: tracking is OFF for this branch; not logging. Enable with /logic toggle on (or set LOGIC_FORCE=1)." >&2
   exit 2
 fi
 

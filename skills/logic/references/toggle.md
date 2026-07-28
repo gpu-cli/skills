@@ -1,12 +1,4 @@
----
-name: toggle-track-logic
-description: "Use to turn the decision trail on or off for a branch. Invoke as /toggle-track-logic [on|off] [branch] — no state flips the current setting, no branch targets the current checkout. Enabling materializes the committed .logic/ runtime and the capture hooks. Use when the user asks to start or stop tracking decisions/rationale/logic for a branch or the repo."
-argument-hint: "[on|off] [branch]"
-user-invocable: true
-license: Apache-2.0
----
-
-# toggle-track-logic
+# Logic toggle
 
 Turns decision-trail tracking on or off, per branch, and installs the runtime on
 first enable.
@@ -14,7 +6,7 @@ first enable.
 ## Command
 
 ```bash
-bash .agents/skills/logic-core/scripts/toggle.sh [on|off] [branch]
+bash .agents/skills/logic/scripts/toggle.sh [on|off] [branch]
 ```
 
 - No `on|off` → flip the current effective state for the branch.
@@ -48,7 +40,7 @@ stubs before finishing), have them merge the printed hooks block into
 ## Config and precedence
 
 Tracking is governed by `.logic/config.json` (see the `config-schema` reference
-in `logic-core`). For the current branch, precedence is: an exact branch key, a
+in the parent `logic` skill). For the current branch, precedence is: an exact branch key, a
 glob key (`release/*`), then an enabled branch that is an **ancestor** of HEAD
 (so a derived worktree branch forked from an enabled feature branch is tracked
 and its rows are labeled with that feature branch), then the project `default`.
@@ -56,9 +48,9 @@ and its rows are labeled with that feature branch), then the project `default`.
 You can also edit config directly:
 
 ```bash
-bash .agents/skills/logic-core/scripts/config-edit.sh set default on
-bash .agents/skills/logic-core/scripts/config-edit.sh set-branch release/* off
-bash .agents/skills/logic-core/scripts/config-edit.sh set-storage some-branch tsv
+bash .agents/skills/logic/scripts/config-edit.sh set default on
+bash .agents/skills/logic/scripts/config-edit.sh set-branch release/* off
+bash .agents/skills/logic/scripts/config-edit.sh set-storage some-branch tsv
 ```
 
 ## Toggle dirt is intended

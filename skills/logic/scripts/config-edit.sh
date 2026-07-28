@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: read and edit .logic/config.json.
+# logic: read and edit .logic/config.json.
 #
 # Usage:
 #   config-edit.sh init                     # create .logic/config.json if absent

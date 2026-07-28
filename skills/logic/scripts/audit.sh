@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: git-evidence resolution and coverage check for decision rows.
+# logic: git-evidence resolution and coverage check for decision rows.
 #
 # Replaces the transcript audit of the original show-me-your-work skill with an
 # artifact that always exists: the git history. Checks that each row's evidence
@@ -7,7 +7,7 @@
 # that no row covers.
 #
 # The audited branch is the one asked for — not the current checkout — so
-# /show-logic <other-branch> from anywhere reports that branch's truth.
+# /logic show <other-branch> from anywhere reports that branch's truth.
 #
 # Usage: audit.sh [branch]
 set -u

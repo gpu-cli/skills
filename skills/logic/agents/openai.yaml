@@ -1,0 +1,4 @@
+interface:
+  display_name: "Logic"
+  short_description: "Reviewable branch decision trails"
+  default_prompt: "Use $logic to track, review, or audit this branch decision trail."

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core self-test: exercises the mechanical core in a throwaway git repo
+# logic self-test: exercises the bundled runtime in a throwaway git repo
 # using the TSV backend (no beads, fully isolated). Proves the capture floor —
 # a commit produces a stub, manual logging adds a row, ancestry resolves a
 # derived branch — and carries a regression case for every fix from the Codex
@@ -9,7 +9,7 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CORE_DIR="$(dirname "$SCRIPT_DIR")"          # skills/logic-core
+CORE_DIR="$(dirname "$SCRIPT_DIR")"          # skills/logic
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); printf '  ok   %s\n' "$1"; }
@@ -25,11 +25,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "logic-core selftest in $TMP"
+echo "logic selftest in $TMP"
 
 # --- set up a throwaway repo with the skill installed ----------------------
 mkdir -p "$TMP/repo/.agents/skills"
-cp -R "$CORE_DIR" "$TMP/repo/.agents/skills/logic-core"
+cp -R "$CORE_DIR" "$TMP/repo/.agents/skills/logic"
 cd "$TMP/repo" || exit 1
 git init -q -b main
 git config user.name  "Selftest Bot"
@@ -37,7 +37,7 @@ git config user.email "selftest@example.com"
 echo "hello" > README.md
 git add -A && git commit -q -m "init"
 
-SK=".agents/skills/logic-core/scripts"
+SK=".agents/skills/logic/scripts"
 
 # --- enable tracking on a feature branch, TSV backend ----------------------
 git checkout -q -b feature/widget

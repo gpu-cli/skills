@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core engine library.
+# logic engine library.
 #
 # Sourced by every logic helper (interactive skill scripts) and, in its
 # materialized form at .logic/runtime/logic.sh, by the git post-commit hook and
