@@ -36,3 +36,8 @@ skills-lock.json
 skills/skill-shield/artifacts/
 skill-audit-output/
 skill-shield-output/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

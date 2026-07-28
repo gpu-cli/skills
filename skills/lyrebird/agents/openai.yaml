@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lyrebird"
+  short_description: "Plan and write brand-native social content"
+  default_prompt: "Use /lyrebird voice, brainstorm, hone, write, or modify to plan and write platform-native posts."
+
+policy:
+  allow_implicit_invocation: true

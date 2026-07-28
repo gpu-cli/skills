@@ -10,6 +10,28 @@ npx skills add gpu-cli/skills
 
 ## Skills
 
+### lyrebird
+
+Creates brand-aware content strategy and platform-native posts for Blog, LinkedIn, Reddit, and X. Lyrebird establishes a durable `VOICE.md` file, researches current platform guidance and factual claims, and writes social output under `social/<proposal-slug>/`.
+
+**Invoke:** `/lyrebird`
+
+**How it works:**
+
+1. `/lyrebird voice` interviews the user, inspects repo context, analyzes exemplars, and writes root `VOICE.md`, including an optional UTM link-tracking convention
+2. `/lyrebird brainstorm [topic]` researches current discussion and returns 3-5 steelmanned content takes
+3. `/lyrebird hone [idea]` turns a rough idea into a sourced proposal with thesis, argument outline, evidence, risks, and suggested platforms
+4. `/lyrebird write [platform?] [proposal]` writes `blog.md`, `linkedin.md`, `reddit.md`, and `x.md` by default, or one platform when specified
+5. `/lyrebird modify [platform] [post]` adapts an existing URL, file, or pasted post to another platform without adding an image
+
+**Link tracking:** When `VOICE.md` defines a UTM convention, `write` and `modify` tag backlinks to your own domains with `utm_*` parameters (`utm_source` set per platform, so a LinkedIn→X conversion updates the source). Third-party and citation links are never tagged.
+
+**Path:** `skills/lyrebird`
+
+**Outputs:** `VOICE.md` for reusable voice context and `social/<proposal-slug>/` for generated post files. X output is always named `x.md`.
+
+---
+
 ### context-curation
 
 Analyzes staged git changes and evaluates agentic context files to suggest additions or removals. Keeps your AI context (CLAUDE.md, .cursorrules, AGENTS.md, etc.) synchronized with actual code.
