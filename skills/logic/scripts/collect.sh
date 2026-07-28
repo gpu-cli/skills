@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: collect all decision rows for a branch into one normalized set.
+# logic: collect all decision rows for a branch into one normalized set.
 #
 # Reads the beads backend (one query — the shared Dolt server already sees every
 # worktree) and any TSV fallback files across all worktrees, merges, dedupes, and

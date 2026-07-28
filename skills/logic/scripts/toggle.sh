@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# logic-core: enable or disable decision-trail tracking for a branch.
-# Backs /toggle-track-logic.
+# logic: enable or disable decision-trail tracking for a branch.
+# Backs /logic toggle.
 #
 # Usage:
 #   toggle.sh [on|off] [branch]
@@ -70,7 +70,7 @@ if [ "$branch" != "$(logic_current_branch)" ]; then
     | awk -v b="branch refs/heads/${branch}" '/^worktree /{w=$2} $0==b{print w; exit}')
   if [ -n "$other_wt" ]; then
     echo "  '${branch}' is checked out at: ${other_wt}"
-    echo "  Run /toggle-track-logic from there for it to take effect immediately."
+    echo "  Run /logic toggle from there for it to take effect immediately."
   else
     echo "  Commit this change and get it onto '${branch}' for it to take effect:"
     echo "    git add .logic/config.json && git commit -m \"chore: track ${branch}\""

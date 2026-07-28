@@ -1,6 +1,6 @@
 # Decision row format
 
-The canonical contract for one decision record. The `track-logic` skill owns the
+The canonical contract for one decision record. The `logic track` skill owns the
 plain-language version; this is the full field reference.
 
 ## Fields
@@ -21,7 +21,7 @@ plain-language version; this is the full field reference.
 | branch   | auto     | logical branch the row is scoped to |
 
 \* A row with no `why` is a **stub**: a mechanical capture awaiting enrichment.
-`show-logic` renders it flagged; the enrichment gate asks for a why.
+`logic show` renders it flagged; the enrichment gate asks for a why.
 
 ## Rules
 
@@ -35,7 +35,7 @@ plain-language version; this is the full field reference.
 - **Attribution is honest.** `actor` is who actually decided. Never attribute an
   invented rationale or confidence to the user — leave a pending row with
   `confidence=unknown` instead.
-- **Inferred rows are never stored.** They exist only in a `show-logic`
+- **Inferred rows are never stored.** They exist only in a `logic show`
   reconstruction view, marked `actor=inferred`, with hypothesis-phrased whys
   and `confidence=unknown`.
 

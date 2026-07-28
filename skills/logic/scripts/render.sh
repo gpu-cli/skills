@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: render collected rows (JSON array on stdin) as Markdown tables.
+# logic: render collected rows (JSON array on stdin) as Markdown tables.
 #
 # One table per stream (worktree), the current checkout first, then a summary.
 # Stub rows show "(no why — stub)" so unrecorded reasoning is visible. Output is
@@ -73,5 +73,5 @@ if [ "$has_blank" -gt 0 ]; then
 fi
 
 if [ "$stubs" -gt 0 ]; then
-  echo "> ${stubs} row(s) are commit stubs with no recorded reasoning. Enrich the ones that mattered with /track-logic or the enrich helper; the rest can be left for gc."
+  echo "> ${stubs} row(s) are commit stubs with no recorded reasoning. Enrich the ones that mattered with /logic track or the enrich helper; the rest can be left for gc."
 fi

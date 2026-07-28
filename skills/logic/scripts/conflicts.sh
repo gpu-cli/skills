@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: mechanical conflict pre-filters between parallel worktree streams.
+# logic: mechanical conflict pre-filters between parallel worktree streams.
 #
 # Feeds the model's tier-3 judgment. Emits JSON:
 #   tier1 — territory overlap: a file touched by rows from >1 worktree

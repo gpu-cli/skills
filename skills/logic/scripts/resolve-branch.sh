@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: print the effective tracking state for the current checkout.
+# logic: print the effective tracking state for the current checkout.
 #
 # Usage: resolve-branch.sh [--json]
 # Plain output: "<state> <logical-branch> <storage>"  (state = on|off)

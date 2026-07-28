@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: Layer-1 mechanical decision capture.
+# logic: Layer-1 mechanical decision capture.
 #
 # Installed to .logic/githooks/post-commit and run by git after every commit
 # (via core.hooksPath=.logic/githooks). Creates one unenriched "stub" decision

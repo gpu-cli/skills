@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: push a rendered decision trail into the PR description, idempotently.
+# logic: push a rendered decision trail into the PR description, idempotently.
 #
 # Reads Markdown from stdin (or --file), wraps it in stable HTML-comment markers,
 # and replaces the marked section in the PR body — so re-running updates in place

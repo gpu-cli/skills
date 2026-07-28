@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic-core: clean up decision rows whose branch was deleted without merging.
+# logic: clean up decision rows whose branch was deleted without merging.
 #
 # A row is an orphan when its commit SHA is reachable from no branch (the branch
 # was deleted unmerged, or the commit was rebased away). Rows whose SHA is

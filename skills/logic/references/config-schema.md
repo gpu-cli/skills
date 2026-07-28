@@ -49,12 +49,12 @@ For the current checkout's branch `B`:
 4. **Default** — `default`.
 
 The **logical branch** is the matched key (exact/glob/ancestor) or `B` itself. It
-is what rows are scoped and labeled by, and what `show-logic` groups on. Storage
+is what rows are scoped and labeled by, and what `logic show` groups on. Storage
 for a branch is `storageOverrides[logicalBranch]` if set, else `storage`.
 
 ## Editing
 
-`toggle-track-logic` writes this file. Direct edits:
+`logic toggle` writes this file. Direct edits:
 
 ```bash
 config-edit.sh init                       # create with defaults
