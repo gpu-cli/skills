@@ -4,15 +4,16 @@
 in CI, in PR review, or before deciding whether a cleanup is worth running.
 
 ```bash
-bash scripts/scope.sh --branch | xargs node scripts/scan.mjs
-bash scripts/scope.sh --branch | xargs node scripts/scan.mjs --ci     # exit 1 on a high-confidence hit
+# tr|xargs -0 keeps filenames with spaces as one argument
+bash scripts/scope.sh --branch | tr '\n' '\0' | xargs -0 -r node scripts/scan.mjs
+bash scripts/scope.sh --branch | tr '\n' '\0' | xargs -0 -r node scripts/scan.mjs --ci
 node scripts/scan.mjs --diff-only --base origin/main src/api/user.ts
 ```
 
 `--ci` exits 1 only for `commented-code`, `agent-reference`, `edit-history`,
-and `tracker-reference` — the four rules that are mechanically decidable.
-`long-comment`, `comment-block`, and `restates-name` always report and never
-fail, because judging them needs the code around them.
+and `tracker-reference` — the four highest-confidence rules. `long-comment`,
+`comment-block`, and `restates-name` always report and never fail, because
+judging them needs the code around them.
 
 ## Why this never rewrites
 
@@ -57,7 +58,7 @@ jobs:
           SKILL: .claude/skills/clean-comments
         run: |
           bash "$SKILL/scripts/scope.sh" --base origin/${{ github.base_ref }} --branch \
-            | xargs -r node "$SKILL/scripts/scan.mjs" --ci
+            | tr '\n' '\0' | xargs -0 -r node "$SKILL/scripts/scan.mjs" --ci
 ```
 
 Set `SKILL` to wherever `npx skills add gpu-cli/skills --skill clean-comments`
@@ -73,7 +74,8 @@ author is done, and it only reports.
 #!/usr/bin/env bash
 # .git/hooks/pre-push
 SKILL=.claude/skills/clean-comments
-bash "$SKILL/scripts/scope.sh" --branch | xargs -r node "$SKILL/scripts/scan.mjs" || true
+bash "$SKILL/scripts/scope.sh" --branch \
+  | tr '\n' '\0' | xargs -0 -r node "$SKILL/scripts/scan.mjs" || true
 ```
 
 Leave the `|| true`. A comment finding is not a reason to block a push.
