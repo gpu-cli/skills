@@ -128,6 +128,49 @@ out=$(node "$S/verify.mjs" 2>&1); rc=$?
 assert "verify catches an edit inside a triple-quoted value" "[ $rc -eq 1 ]"
 git checkout -q svc.py
 
+# A triple-quoted value directly after a `:` line is still a value: `query =`
+# before the quote means no docstring, whatever the previous line ends with.
+cat > direct.py <<'EOF'
+def fetch(url):
+    query = """
+        SELECT id FROM users WHERE active = 1
+    """
+    return run(query, url)
+EOF
+git add -A && git commit -q -m directpy
+sed_inplace() { sed -i.bak "$1" "$2" && rm -f "$2.bak"; }
+sed_inplace 's/active = 1/active = 0/' direct.py
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit in a triple-quoted value after 'def f():'" "[ $rc -eq 1 ]"
+git checkout -q direct.py
+
+# A template literal spans lines, so a // on a continuation line is string
+# content, not a comment that hides the rest of the line from verify.
+cat > tpl.ts <<'EOF'
+const tpl = `
+  visit https://example.com/v1 for docs
+`;
+EOF
+git add -A && git commit -q -m tpl
+sed_inplace 's|/v1|/v2|' tpl.ts
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit after // inside a multiline template literal" "[ $rc -eq 1 ]"
+git checkout -q tpl.ts
+
+# Same shape in Go: a raw backtick string spans lines.
+cat > raw.go <<'EOF'
+package main
+
+const usage = `
+  see https://example.com/v1 for docs
+`
+EOF
+git add -A && git commit -q -m rawgo
+sed_inplace 's|/v1|/v2|' raw.go
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit after // inside a Go raw string" "[ $rc -eq 1 ]"
+git checkout -q raw.go
+
 # Shell: `#` inside ${x#y} is not a comment.
 cat > tool.sh <<'EOF'
 #!/usr/bin/env bash

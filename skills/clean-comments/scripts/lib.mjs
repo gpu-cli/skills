@@ -10,8 +10,11 @@ import path from 'node:path';
 const DQ = { q: '"', esc: true };
 const SQ = { q: "'", esc: true };
 const SQ_RAW = { q: "'", esc: false };
-const BT = { q: '`', esc: true };
-const BT_RAW = { q: '`', esc: false };
+// Backtick strings span lines. Losing that would reset string state at each
+// newline, and a `//` on a continuation line would open a fake comment that
+// hides real edits from verify.
+const BT = { q: '`', esc: true, multiline: true };
+const BT_RAW = { q: '`', esc: false, multiline: true };
 
 const C_LIKE = { line: ['//'], block: [['/*', '*/']], strings: [DQ, SQ] };
 const HASH = { line: ['#'], block: [], strings: [DQ, SQ], lineNeedsBoundary: true };
@@ -133,8 +136,9 @@ export function tokenize(source, syn) {
         if (!at(line, i, open)) continue;
         // A triple-quoted string is a docstring only as the first statement of a
         // module, class, or function. Anywhere else it is a value, and editing
-        // it is a code change.
-        const isDoc = looksLikeDocstring(lines, ln, i);
+        // it is a code change. A docstring starts its own line: any code before
+        // the quote (`query = """`) makes it a value, whatever came above.
+        const isDoc = line.slice(0, i).trim() === '' && looksLikeDocstring(lines, ln, i);
         if (isDoc) {
           block = { end: close, startLine: ln, col: i, raw: open, kind: 'doc' };
           i += open.length;
@@ -173,7 +177,12 @@ export function tokenize(source, syn) {
       if (matched) continue;
 
       const s = syn.strings.find((d) => at(line, i, d.q));
-      if (s) { str = { q: s.q, esc: s.esc }; code += s.q; i += s.q.length; continue; }
+      if (s) {
+        str = { q: s.q, esc: s.esc, multiline: s.multiline };
+        code += s.q;
+        i += s.q.length;
+        continue;
+      }
 
       code += line[i++];
     }

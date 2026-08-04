@@ -70,10 +70,10 @@ A pre-push hook is the one place a local check belongs: it runs after the
 author is done, and it only reports.
 
 ```bash
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # .git/hooks/pre-push
 SKILL=.claude/skills/clean-comments
-sh "$SKILL/scripts/scope.sh" --branch | xargs -r node "$SKILL/scripts/scan.mjs" || true
+bash "$SKILL/scripts/scope.sh" --branch | xargs -r node "$SKILL/scripts/scan.mjs" || true
 ```
 
 Leave the `|| true`. A comment finding is not a reason to block a push.
