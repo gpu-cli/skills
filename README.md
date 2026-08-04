@@ -278,3 +278,54 @@ PR-oriented skill with three subcommands.
 `--pr`. Degrades to a TSV trail without `bd`.
 
 **Test:** `bash skills/logic/tests/selftest.sh`
+
+---
+
+### clean-comments
+
+Deletes agent commentary from code and rewrites the comments worth keeping as
+one plain line. Agents restate the code, narrate their own edits, carry issue
+IDs no reader can resolve, and spend three lines where none were needed. This
+removes that layer without touching a single line of executable code.
+
+**Invoke:** `/clean-comments [path]`, `/clean-comments all`,
+`/clean-comments check`, `/clean-comments install`
+
+**How it works:**
+
+1. **Triage, not search-and-replace.** Every comment goes down a ten-rung
+   ladder and stops at the first match: toolchain directives and license
+   headers are kept verbatim; doc comments keep their contract and lose the
+   padding that repeats the signature; commented-out code, restatements, edit
+   narration, agent self-references, and unresolvable issue IDs are deleted;
+   unfinished work becomes a `TODO:`/`FIXME:`/`HACK:` notation; and a comment
+   explaining a constraint, a bug fix, unidiomatic code, or a business rule is
+   kept and tightened to one line.
+2. **Plain style for what survives.** Kept comments are rewritten in a
+   condensed ASD-STE100 style — active voice, simple tense, one idea, twenty
+   words or fewer, no hedging.
+3. **Comment-only, and provable.** `verify.mjs` strips every comment from both
+   versions of each changed file and compares what is left, so a code change
+   that slipped into a "comment cleanup" fails loudly instead of shipping. The
+   stripper is quote-aware: a `//` inside a URL string or a `#` inside `${x#y}`
+   does not read as a comment.
+4. **Diff-scoped by default.** Untouched comments in a changed file are out of
+   scope unless you ask for a path or `all`.
+5. **What it will not do.** It never edits code — a comment that can only be
+   fixed by changing the code is reported instead, which is where "comments
+   don't excuse unclear code" lands. It never deletes a comment it cannot
+   understand.
+
+**Prevention:** `/clean-comments install` writes a fifteen-line comment policy
+into `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, and friends, fenced by markers so
+reruns update in place. Preventing the comments beats scrubbing them, so this is
+the part worth running first.
+
+**Checking:** `/clean-comments check` reports without editing, for CI or PR
+review. `--ci` fails only on the four mechanically decidable rules. There is
+deliberately no pre-commit rewrite hook: an LLM pass at commit time is slow,
+non-deterministic, and rewrites code the author has already reviewed.
+
+**Requires:** `git`, `node`
+
+**Test:** `bash skills/clean-comments/tests/selftest.sh`
