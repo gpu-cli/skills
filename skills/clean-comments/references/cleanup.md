@@ -73,8 +73,9 @@ It strips comments from both versions of every changed file and compares what
 is left. Identical means only comment text moved.
 
 A failure means an edit changed code. Revert that file and redo it. Never
-report a cleanup whose verification failed, and never pass `--force` to make
-the check agree with you.
+report a cleanup whose verification failed. Files the check could not compare
+are listed as unchecked — say so in the report rather than folding them into
+the pass.
 
 The comment stripper is quote-aware but heuristic; it is a backstop against a
 slipped edit, not a proof. A clean run does not excuse careless editing, and an

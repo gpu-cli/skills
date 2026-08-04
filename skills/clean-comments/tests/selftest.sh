@@ -128,6 +128,196 @@ out=$(node "$S/verify.mjs" 2>&1); rc=$?
 assert "verify catches an edit inside a triple-quoted value" "[ $rc -eq 1 ]"
 git checkout -q svc.py
 
+# A triple-quoted value directly after a `:` line is still a value: `query =`
+# before the quote means no docstring, whatever the previous line ends with.
+cat > direct.py <<'EOF'
+def fetch(url):
+    query = """
+        SELECT id FROM users WHERE active = 1
+    """
+    return run(query, url)
+EOF
+git add -A && git commit -q -m directpy
+sed_inplace() { sed -i.bak "$1" "$2" && rm -f "$2.bak"; }
+sed_inplace 's/active = 1/active = 0/' direct.py
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit in a triple-quoted value after 'def f():'" "[ $rc -eq 1 ]"
+git checkout -q direct.py
+
+# A template literal spans lines, so a // on a continuation line is string
+# content, not a comment that hides the rest of the line from verify.
+cat > tpl.ts <<'EOF'
+const tpl = `
+  visit https://example.com/v1 for docs
+`;
+EOF
+git add -A && git commit -q -m tpl
+sed_inplace 's|/v1|/v2|' tpl.ts
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit after // inside a multiline template literal" "[ $rc -eq 1 ]"
+git checkout -q tpl.ts
+
+# Same shape in Go: a raw backtick string spans lines.
+cat > raw.go <<'EOF'
+package main
+
+const usage = `
+  see https://example.com/v1 for docs
+`
+EOF
+git add -A && git commit -q -m rawgo
+sed_inplace 's|/v1|/v2|' raw.go
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit after // inside a Go raw string" "[ $rc -eq 1 ]"
+git checkout -q raw.go
+
+# A JS regex literal can contain //; everything after it is still code.
+cat > re.js <<'EOF'
+const ok = /https:\/\//.test(u);
+if (ok) grant(); else deny();
+EOF
+git add -A && git commit -q -m re
+sed_inplace 's/else deny()/else grant()/' re.js
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change after a regex literal containing //" "[ $rc -eq 1 ]"
+git checkout -q re.js
+
+# Heredoc bodies are data: a # line inside one is not a comment.
+cat > hd.sh <<'EOF'
+#!/usr/bin/env bash
+cat <<BANNER
+welcome # rules: be nice
+BANNER
+EOF
+git add -A && git commit -q -m hd
+sed_inplace 's/be nice/be evil/' hd.sh
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change inside a shell heredoc" "[ $rc -eq 1 ]"
+git checkout -q hd.sh
+
+cat > hd.rb <<'EOF'
+CONF = <<~TXT
+  retries=3 # max 3 then abort
+TXT
+EOF
+git add -A && git commit -q -m hdrb
+sed_inplace 's/max 3/max 9/' hd.rb
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change inside a ruby heredoc" "[ $rc -eq 1 ]"
+git checkout -q hd.rb
+
+# YAML block scalars are strings: a # inside one is not a comment.
+cat > ci.yml <<'EOF'
+steps:
+  - name: fetch
+    script: |
+      curl -fsSL https://example.com/install.sh # v1 pinned
+EOF
+git add -A && git commit -q -m yml
+sed_inplace 's/v1 pinned/v2 unpinned/' ci.yml
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change inside a YAML block scalar" "[ $rc -eq 1 ]"
+git checkout -q ci.yml
+
+# A triple-quoted string under a dict key is a value, not a docstring.
+cat > q.py <<'EOF'
+QUERIES = {
+    'active':
+        """SELECT id FROM users WHERE active = 1""",
+}
+EOF
+git add -A && git commit -q -m qpy
+sed_inplace 's/active = 1/active = 0/' q.py
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches an edit in a triple-quoted dict value" "[ $rc -eq 1 ]"
+git checkout -q q.py
+
+# Rust: '"' is a char literal and must not flip string state.
+cat > ch.rs <<'EOF'
+fn main() {
+    let q = '"';
+    let url = "https://x/v1";
+}
+EOF
+git add -A && git commit -q -m chrs
+sed_inplace 's|/v1|/v2|' ch.rs
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change after a rust '\"' char literal" "[ $rc -eq 1 ]"
+git checkout -q ch.rs
+
+# A backslash at end of line continues the string onto the next line.
+printf 'const s = "abc\\\nxyz // limit is 5";\n' > cont.js
+git add -A && git commit -q -m cont
+printf 'const s = "abc\\\nxyz // limit is 9";\n' > cont.js
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a change on a backslash-continued string line" "[ $rc -eq 1 ]"
+git checkout -q cont.js
+
+# The shebang is executable metadata, not a removable comment.
+cat > she.py <<'EOF'
+#!/usr/bin/env python3
+print("hi")
+EOF
+git add -A && git commit -q -m she
+sed_inplace 's/python3/python2/' she.py
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify catches a shebang edit" "[ $rc -eq 1 ]"
+git checkout -q she.py
+
+# PHP hash comments are comments; cleaning one passes.
+cat > w.php <<'EOF'
+<?php
+# remove the temp rows
+purge();
+EOF
+git add -A && git commit -q -m php
+cat > w.php <<'EOF'
+<?php
+purge();
+EOF
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify passes a PHP hash-comment removal" "[ $rc -eq 0 ]"
+git checkout -q w.php
+
+# Python allows a comment with no space before the #.
+cat > tight.py <<'EOF'
+x=1# legacy default
+EOF
+git add -A && git commit -q -m tight
+cat > tight.py <<'EOF'
+x=1
+EOF
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify passes removing a no-space python comment" "[ $rc -eq 0 ]"
+git checkout -q tight.py
+
+# Running from a subdirectory must not misread files as new.
+mkdir -p sub && cat > sub/deep.js <<'EOF'
+// note
+const a = 1;
+EOF
+git add -A && git commit -q -m sub
+sed_inplace 's/a = 1/a = 2/' sub/deep.js
+out=$(cd sub && node "$S/verify.mjs" deep.js 2>&1); rc=$?
+assert "verify works from a subdirectory" "[ $rc -eq 1 ]"
+git checkout -q sub/deep.js
+
+# Verify names files it has no syntax for instead of silently passing them.
+printf 'all:\n\techo hi\n' > Makefile
+cat > ok.js <<'EOF'
+// note
+const b = 1;
+EOF
+git add -A && git commit -q -m mk
+printf 'all:\n\techo BYE\n' > Makefile
+cat > ok.js <<'EOF'
+const b = 1;
+EOF
+out=$(node "$S/verify.mjs" 2>&1); rc=$?
+assert "verify still passes the checkable file" "[ $rc -eq 0 ]"
+assert_grep "verify names the unchecked file" "NOT checked.*Makefile" "$out"
+git checkout -q Makefile ok.js
+
 # Shell: `#` inside ${x#y} is not a comment.
 cat > tool.sh <<'EOF'
 #!/usr/bin/env bash
@@ -238,6 +428,18 @@ const lock = new Mutex();
 EOF
 node "$S/scan.mjs" --ci clean.ts >/dev/null 2>&1
 assert "scan --ci passes a clean file" "[ $? -eq 0 ]"
+
+# A directive word buried in prose is prose; a directive is at the top.
+cat > prose.ts <<'EOF'
+// I've painted the button black as you asked
+const btn = paint();
+
+// width = height in square mode
+const sq = resize();
+EOF
+out=$(node "$S/scan.mjs" prose.ts 2>&1)
+assert_grep "scan flags an agent reference despite a formatter's name" "agent-reference" "$out"
+assert_not_grep "scan reads a prose assignment as prose" "commented-code" "$out"
 
 # A URL keeps a tracker id resolvable, so it is not a finding.
 cat > linked.ts <<'EOF'

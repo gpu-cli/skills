@@ -72,9 +72,22 @@ for f in "${targets[@]}"; do
   [ -f "$f" ] || { echo "clean-comments: no such file: $f" >&2; continue; }
   rel=${f#"$root"/}
 
-  begin_ln=$(grep -n "$MARKER_RE" "$f" | head -n1 | cut -d: -f1 || true)
-  end_ln=$(grep -n "$END_RE" "$f" | head -n1 | cut -d: -f1 || true)
+  # A marker inside a code fence is documentation of the marker, not the
+  # marker: replacing "the block" there corrupts the user's example. Only a
+  # marker outside any fence counts.
+  find_marker() {
+    awk -v pat="$1" '
+      /^(```|~~~)/ { fence = !fence; next }
+      !fence && index($0, pat) == 1 { print NR; exit }
+    ' "$2"
+  }
+  begin_ln=$(find_marker "$MARKER_RE" "$f")
+  end_ln=$(find_marker "$END_RE" "$f")
 
+  if [ -n "$begin_ln" ] && [ -n "$end_ln" ] && [ "$end_ln" -lt "$begin_ln" ]; then
+    echo "clean-comments: $rel has its markers reversed (END before BEGIN); fix it by hand." >&2
+    continue
+  fi
   if [ -n "$begin_ln" ] && [ -n "$end_ln" ] && [ "$end_ln" -gt "$begin_ln" ]; then
     action="update"
     tmp=$(mktemp)

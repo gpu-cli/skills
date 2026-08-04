@@ -66,4 +66,5 @@ each rung.
 ## Validation
 
 Run `bash tests/selftest.sh` after changing the bundled scripts. After any
-cleanup, `node scripts/verify.mjs` proves that only comment text changed.
+cleanup, run `node scripts/verify.mjs`: it checks that only comment text
+changed. Its failure is authoritative; its pass is strong evidence, not proof.

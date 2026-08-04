@@ -22,7 +22,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --branch) mode=branch ;;
     --all) mode=all ;;
-    --base) shift; CC_BASE_REF="${1:-}" ;;
+    --base) [ $# -ge 2 ] || cc_die "--base needs a ref"; shift; CC_BASE_REF="$1" ;;
     -h|--help) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) cc_die "unknown option: $1" ;;
     *) mode=paths; paths+=("$1") ;;
@@ -32,23 +32,27 @@ done
 
 cc_require_repo
 
+# quotepath=off keeps non-ASCII names literal; octal-escaped quoting would
+# make every downstream file test fail and silently drop the file.
+GIT="git -c core.quotepath=off"
+
 case "$mode" in
   changed)
-    { git diff --name-only --diff-filter=d HEAD 2>/dev/null || true
-      git ls-files --others --exclude-standard; } ;;
+    { $GIT diff --name-only --diff-filter=d HEAD 2>/dev/null || true
+      $GIT ls-files --others --exclude-standard; } ;;
   branch)
     base=$(cc_base_ref "${CC_BASE_REF:-}")
     [ -z "$base" ] && cc_die "cannot resolve a base ref; pass --base <ref>"
-    git diff --name-only --diff-filter=d "$base"...HEAD
-    git diff --name-only --diff-filter=d HEAD
-    git ls-files --others --exclude-standard ;;
+    $GIT diff --name-only --diff-filter=d "$base"...HEAD
+    $GIT diff --name-only --diff-filter=d HEAD
+    $GIT ls-files --others --exclude-standard ;;
   all)
-    git ls-files --cached --others --exclude-standard ;;
+    $GIT ls-files --cached --others --exclude-standard ;;
   paths)
     for p in "${paths[@]}"; do
       [ -e "$p" ] || cc_die "no such path: $p"
       if [ -d "$p" ]; then
-        git ls-files --cached --others --exclude-standard "$p"
+        $GIT ls-files --cached --others --exclude-standard "$p"
       else
         printf '%s\n' "$p"
       fi

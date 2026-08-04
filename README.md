@@ -304,11 +304,13 @@ removes that layer without touching a single line of executable code.
 2. **Plain style for what survives.** Kept comments are rewritten in a
    condensed ASD-STE100 style — active voice, simple tense, one idea, twenty
    words or fewer, no hedging.
-3. **Comment-only, and provable.** `verify.mjs` strips every comment from both
+3. **Comment-only, and checked.** `verify.mjs` strips every comment from both
    versions of each changed file and compares what is left, so a code change
    that slipped into a "comment cleanup" fails loudly instead of shipping. The
-   stripper is quote-aware: a `//` inside a URL string or a `#` inside `${x#y}`
-   does not read as a comment.
+   stripper tracks string, regex, heredoc, and docstring state: a `//` inside
+   a URL string or a regex literal, a `#` inside `${x#y}` or a heredoc, does
+   not read as a comment. It is a strong backstop, not a proof — files it has
+   no syntax for are listed as unchecked rather than silently passed.
 4. **Diff-scoped by default.** Untouched comments in a changed file are out of
    scope unless you ask for a path or `all`.
 5. **What it will not do.** It never edits code — a comment that can only be

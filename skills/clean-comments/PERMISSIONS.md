@@ -15,7 +15,7 @@ What `clean-comments` touches, and what it never touches.
 **Writes**
 
 - Comment text in files inside the requested scope. Executable code is never
-  changed, and `scripts/verify.mjs` exists to prove it.
+  changed, and `scripts/verify.mjs` exists to check it.
 - The fenced guidance block in agent instruction files — only under
   `install-guidance.sh --write`, which is never the default. A dry run prints a
   diff and writes nothing.
@@ -37,12 +37,14 @@ user's CI under their own credentials and is not invoked by the skill.
 
 ## Subprocesses
 
-`git` only, always through `execFileSync` with an argument array or a quoted
-shell call, so no user value reaches a shell for interpretation.
+`git`, always through `execFileSync` with an argument array or a quoted shell
+call, so no user value reaches a shell for interpretation; plus standard POSIX
+text utilities (`grep`, `sed`, `awk`, `head`, `diff`, `cmp`, `mktemp`) in the
+bash helpers.
 
-Commands used: `rev-parse`, `ls-files`, `diff`, `show`, `symbolic-ref`.
-All are read-only. The skill never commits, stages, pushes, checks out, or
-resets, and it does not install hooks.
+Git commands used: `rev-parse`, `ls-files`, `diff`, `show`, `cat-file`,
+`symbolic-ref`. All are read-only. The skill never commits, stages, pushes,
+checks out, or resets, and it does not install hooks.
 
 ## Secrets
 
