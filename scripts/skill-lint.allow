@@ -1,0 +1,9 @@
+# Per-skill body token budgets that exceed the 1500-token default.
+#
+# Format: <skill-name> <max-body-tokens> # justification
+#
+# Raising a budget is a last resort. The first question is always whether the
+# content is orchestration (belongs in SKILL.md) or detail (belongs in
+# references/, loaded only by the phase that needs it).
+
+skill-shield 2000 # security hard rules and the deterministic scoring formula must be resident before any target file is read

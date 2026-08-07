@@ -2,6 +2,44 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Skill Authoring Convention
+
+A skill costs context in two places, and they are billed very differently.
+
+**The frontmatter `description` is always on.** It is injected into every
+session whether or not the skill is ever used, so it is the most expensive text
+in the repository per unit of value. Write it as routing triggers only: one
+sentence on what the skill does, the words a user would actually type, and the
+invocation form. No feature enumerations, no dimension lists, no benchmarks —
+those belong in the body. Budget: **60 estimated tokens (~240 characters)**.
+
+**The `SKILL.md` body loads once per invocation.** Write it as an orchestration
+outline: what the phases are, what order they run in, the rules that must be
+resident before the agent touches anything, and a pointer to the reference that
+carries each phase's detail. Budget: **1,500 estimated tokens**.
+
+**Detail lives in `references/`, loaded on demand.** Templates, check
+catalogues, worked examples, cookbooks, and per-phase procedures go here. State
+each fact in exactly one place — if the body and a reference both define the
+check IDs, they will drift, and the body copy is the one being paid for on
+every invocation.
+
+**Never track generated output inside a skill directory.** Reports, analyses,
+and audit artifacts ship to every install of the skill and an agent reading the
+package can mistake them for instructions. Put them in `planning/`, or gitignore
+them.
+
+Check the budgets before committing:
+
+```bash
+bash scripts/skill-lint.sh    # per-skill description and body token estimates
+bash scripts/selftest.sh      # the lint plus every skill's own self-test
+```
+
+Raising a body budget requires an entry with a justification in
+`scripts/skill-lint.allow`, and is a last resort — the first question is always
+whether the content is orchestration or detail.
+
 ## Quick Reference
 
 ```bash

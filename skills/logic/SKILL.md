@@ -1,6 +1,6 @@
 ---
 name: logic
-description: "Use when the user wants to start or stop recording a branch decision trail, record a decision and its rationale, or show and audit the rationale behind a branch or PR. Invoke as /logic toggle, /logic track, or /logic show. Captures decisions across concurrent worktrees, validates evidence, and can add a reviewable trail to a PR."
+description: "Records and reviews a branch's decision trail — what was decided, why, and the evidence. Use to start or stop tracking, record a rationale, or audit a branch or PR. Invoke as /logic toggle, /logic track, or /logic show."
 ---
 
 # Logic

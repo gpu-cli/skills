@@ -1,6 +1,6 @@
 ---
 name: lyrebird
-description: "Use when the user wants to establish a brand or personal writing voice, brainstorm content ideas, hone a content thesis, write platform-native posts for Blog, LinkedIn, Reddit, or X, or modify an existing post for another platform. Creates and reads VOICE.md, researches current platform guidance, fact-checks claims, and outputs social posts under social/<proposal-slug>/."
+description: "Brand-aware content strategy and platform-native posts for Blog, LinkedIn, Reddit, and X. Use to establish a writing voice, brainstorm ideas, hone a thesis, write a post, or adapt one to another platform. Invoke as /lyrebird."
 argument-hint: "[command] [input]"
 user-invocable: true
 license: Apache-2.0
