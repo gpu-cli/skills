@@ -222,6 +222,32 @@ cf=$(bash "$SK/conflicts.sh" feature/widget 2>/dev/null)
 idx=$(printf '%s' "$cf" | jq -r '[.streams[].branch] | index("unrelated/branch") | tostring' 2>/dev/null)
 assert "unrelated worktree excluded from conflict streams" "[ '${idx:-null}' = 'null' ]"
 
+# uxf.10 — a wedged backend must not hold the commit open. The hook promises it
+# will never noticeably slow a commit; without a bound, a blocked logic_log_row
+# blocks git forever. Runs in its own repo so the stub store stays untouched.
+wedge="$TMP/wedged"
+mkdir -p "$wedge/.logic/runtime" "$wedge/.logic/githooks"
+git init -q "$wedge"
+git -C "$wedge" config user.email t@t
+git -C "$wedge" config user.name "T"
+git -C "$wedge" config core.hooksPath .logic/githooks
+cp -f "$SK/../githooks/post-commit" "$wedge/.logic/githooks/post-commit"
+chmod +x "$wedge/.logic/githooks/post-commit"
+printf 'logic_is_tracked() { return 0; }\nlogic_find_stub_by_sha() { :; }\nlogic_log_row() { sleep 98765; }\n' \
+  > "$wedge/.logic/runtime/logic.sh"
+echo wedge > "$wedge/w.txt"
+git -C "$wedge" add w.txt
+started=$(date +%s)
+LOGIC_HOOK_TIMEOUT=2 git -C "$wedge" commit -q -m "wedged backend" </dev/null >/dev/null 2>&1
+took=$(( $(date +%s) - started ))
+wedge_head=$(git -C "$wedge" rev-parse -q --verify HEAD 2>/dev/null)
+wedge_orphans=$(pgrep -f 'sleep 98765' 2>/dev/null)
+assert "wedged hook does not hold the commit open" "[ ${took:-99} -le 20 ]"
+assert "wedged hook still lets the commit succeed" "[ -n '${wedge_head}' ]"
+# The killed capture must take its descendants with it, or whatever it was
+# blocked in keeps git's inherited descriptors open and the bound means nothing.
+assert "wedged hook leaves no orphaned descendants" "[ -z '${wedge_orphans}' ]"
+
 echo
 echo "selftest: ${pass} passed, ${fail} failed"
 [ "$fail" -eq 0 ]
