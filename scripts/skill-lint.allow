@@ -1,1 +1,1 @@
-skill-shield 2600 # security hard rules and the deterministic scoring formula must be resident before any target file is read
+skill-shield 2300 # anti-injection rules and the deterministic scoring formula must be resident before any target file is read
