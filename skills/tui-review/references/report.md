@@ -101,3 +101,20 @@ Apply to every screenshot you open.
 ## vs Best-in-Class
 [How this TUI compares to Claude Code/OpenCode/Codex patterns]
 ```
+
+## Quick Start for an Unknown TUI
+
+When nothing is known about the app, this order surfaces the most in the fewest
+keypresses:
+
+1. Launch and wait for ready, then screenshot the initial state and review it.
+2. Press `?` then `F1` to find help; screenshot if found.
+3. Try `/` for a command palette; screenshot if found.
+4. Try `Tab`, arrows, and `j`/`k` for navigation.
+5. Try `Escape` from every state you reach.
+6. Type text to find input areas.
+7. Submit something and screenshot the processing and response states.
+8. Take the four resize screenshots.
+9. Run the color assertions.
+10. Open every screenshot with the Read tool, then work through the remaining
+    dimension tests.

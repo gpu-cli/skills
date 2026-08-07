@@ -583,3 +583,21 @@ tmux_assert_has_color "$S" "90" "dim gray for muted text"
 - **Missing error color**: Errors displayed in same color as normal text
 - **Status ambiguity**: Success and error states use the same color
 - **Low contrast muted text**: "Dim" text so dim it's unreadable (ANSI 90 on some dark themes)
+
+### Border Discipline
+
+Flag excessive borders. Many TUIs wrap the whole screen in box-drawing
+(`╭╮╰╯│─`), spending real estate and adding noise for no information gain.
+
+- **Good** — borders that separate distinct regions (input vs conversation),
+  frame a modal over content, or group related controls.
+- **Bad** — a full outer border around the entire TUI, a border on every panel
+  where whitespace or a rule would do, or nested box-in-a-box.
+
+What the best do: Claude Code separates the input area with a horizontal rule
+and no outer border; OpenCode uses a `┃` left margin for message attribution;
+Codex borders only the header and status panels, leaving the conversation
+borderless. The pattern is **content-heavy areas borderless, chrome-heavy areas
+bordered**.
+
+Flag any TUI that borders the full screen as a WARNING.
