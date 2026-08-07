@@ -1,6 +1,6 @@
 ---
 name: tui-review
-description: "Reviews a terminal UI's UX against 10 dimensions and grades it. Use when asked to review, audit, or critique a TUI's responsiveness, keybindings, layout, or visual design. Runs it in tmux and screenshots each state."
+description: "Runs a TUI in tmux, screenshots each state, and grades its UX. Use to review or critique a terminal UI."
 ---
 
 # TUI Review

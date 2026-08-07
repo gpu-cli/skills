@@ -9,14 +9,32 @@ A skill costs context in two places, and they are billed very differently.
 **The frontmatter `description` is always on.** It is injected into every
 session whether or not the skill is ever used, so it is the most expensive text
 in the repository per unit of value. Write it as routing triggers only: one
-sentence on what the skill does, the words a user would actually type, and the
-invocation form. No feature enumerations, no dimension lists, no benchmarks —
-those belong in the body. Budget: **60 estimated tokens (~240 characters)**.
+sentence on what the skill does plus the words a user would actually type. No
+feature enumerations, no dimension lists, no benchmarks, and no "Invoke as
+/name" — the name is already in the listing. Budget: **45 tokens**.
+
+Claude Code prices that listing as:
+
+```js
+tokens = round([name, description, whenToUse].filter(Boolean).join(" ").length / bytesPerToken)
+```
+
+Two consequences worth internalizing. The **skill name is billed with the
+description**, so a long name is a permanent tax. And `bytesPerToken` is **3**
+for every model from Claude 5 on (Claude 3.x and 4.x used 4) — so a description
+costs a third more than a chars/4 rule of thumb suggests. `/skills` shows this
+number rounded to the nearest 10, which is what `SHOWN` in the lint reproduces.
+
+Two caps sit above the budget, neither normally binding: a single description is
+truncated past `skillListingMaxDescChars` (1536), and once the whole listing
+exceeds `skillListingBudgetFraction` of the context window (1%, so ~30,000
+characters at 1M) Claude Code starts dropping the longest descriptions entirely,
+leaving those skills listed by name alone.
 
 **The `SKILL.md` body loads once per invocation.** Write it as an orchestration
 outline: what the phases are, what order they run in, the rules that must be
 resident before the agent touches anything, and a pointer to the reference that
-carries each phase's detail. Budget: **1,500 estimated tokens**.
+carries each phase's detail. Budget: **2,000 estimated tokens**.
 
 **Detail lives in `references/`, loaded on demand.** Templates, check
 catalogues, worked examples, cookbooks, and per-phase procedures go here. State

@@ -1,6 +1,6 @@
 ---
 name: tmux-cli-test
-description: "Drives a CLI or TUI in a tmux session — launches it, waits on conditions instead of sleeping, sends keys, and asserts on captured output. Use when asked to test, verify, or QA a terminal UI or CLI command flow."
+description: "Drives a CLI or TUI in tmux — sends keys, waits on conditions, asserts on output. Use to test a terminal app."
 ---
 
 # tmux CLI Testing

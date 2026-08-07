@@ -342,13 +342,18 @@ runs or not; a `SKILL.md` body loads once per invocation; everything under
 `references/` loads only when a phase asks for it. So descriptions are routing
 triggers, bodies are orchestration outlines, and detail lives in references.
 
-Budgets are **60 estimated tokens** for a description and **1,500** for a body,
-enforced by:
+Budgets are **45 tokens** for a description and **2,000** for a body, enforced by:
 
 ```bash
 bash scripts/skill-lint.sh    # per-skill description and body token estimates
 bash scripts/selftest.sh      # the lint plus every skill's own self-test
 ```
+
+The lint reproduces Claude Code's own arithmetic, including the two parts that
+are easy to get wrong: the skill **name** is billed alongside the description,
+and current models estimate at **3** characters per token rather than 4. Its
+`SHOWN` column is the figure `/skills` displays, so the two can be compared
+directly. See [AGENTS.md](AGENTS.md) for the formula.
 
 The lint also fails if generated output (reports, analyses, audit artifacts) is
 tracked inside a skill directory — those ship to every install and an agent
