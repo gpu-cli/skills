@@ -178,7 +178,7 @@ Explore and analyze TUI applications to produce clone-ready documentation. Launc
    - Error, loading, and empty states
    - Data structure patterns (lists, trees, tables, diffs)
 
-4. Outputs `tui-analysis-[app-name]-[timestamp].md` — a complete clone spec
+4. Outputs `tui-analysis/[app-name]-[timestamp].md` — a complete clone spec
 
 **Supports:** Claude Code, OpenCode, Codex, lazygit, lazydocker, htop, btop, k9s, and any ratatui/ncurses app.
 
@@ -224,10 +224,10 @@ Security audit and active remediation for agent skills. Analyzes SKILL.md instru
 
 1. **Phase 0 — Trust & Source Verification**: Assesses skill provenance (source pinning, publisher identity, repository health signals), checks against local allowlist/denylist, and calculates a provenance confidence score
 2. **Phase 1 — File Inventory**: Enumerates all files, classifies them (instruction, executable, reference, config), calculates SHA-256 hashes, and maps dependencies
-3. **Phase 2 — Static Analysis**: Applies 30+ pattern-matching checks from a comprehensive dangerous-patterns database covering shell script risks (credential access, code execution, persistence, exfiltration), instruction risks (prompt injection, hidden instructions, scope violations), and supply chain risks (missing permissions, mutable refs, undeclared dependencies)
+3. **Phase 2 — Static Analysis**: Applies 36 pattern-matching checks from a comprehensive dangerous-patterns database covering shell script risks (credential access, code execution, persistence, exfiltration), instruction risks (prompt injection, hidden instructions, scope violations), and supply chain risks (missing permissions, mutable refs, undeclared dependencies)
 4. **Phase 3 — Behavioral Analysis**: Evaluates scope proportionality, data flow asymmetry, privilege escalation paths, time/state bombs, anti-analysis techniques, and self-modification
-5. **Phase 4 — Risk Scoring**: Calculates weighted risk score (severity x exploitability x blast radius) and determines verdict (PASS / WARN / FAIL)
-6. **Phase 5 — Present Results**: Displays full findings, verdict, permission profile, and recommendations inline. Asks the user if they want Markdown/JSON report files generated (reports are optional, never auto-written)
+5. **Phase 4 — Risk Scoring**: Calculates weighted risk score (severity x exploitability x blast radius) and determines verdict (PASS / REVIEW / FAIL)
+6. **Phase 5 — Present Results**: Displays a compact scorecard inline — verdict, risk score, one summary paragraph, and one row per finding. Full evidence, permission profile, and data flow analysis stay in the optional Markdown/JSON reports, which are never auto-written
 7. **Phase 6 — Remediation** (optional): Rewrites the skill to a separate directory with security concerns addressed, generates `PERMISSIONS.md`, `CHECKSUMS.sha256`, and `PROVENANCE.md` integrity bundle. Auto-fixes LOW/MEDIUM issues; requires explicit user approval for HIGH/CRITICAL changes
 
 **Requires:** `sha256sum` (or `shasum`), `git`
@@ -331,3 +331,27 @@ non-deterministic, and rewrites code the author has already reviewed.
 **Requires:** `git`, `node`
 
 **Test:** `bash skills/clean-comments/tests/selftest.sh`
+
+---
+
+## Contributing
+
+Skills are billed in two places, and the difference drives how they are written.
+A frontmatter `description` is injected into **every** session whether the skill
+runs or not; a `SKILL.md` body loads once per invocation; everything under
+`references/` loads only when a phase asks for it. So descriptions are routing
+triggers, bodies are orchestration outlines, and detail lives in references.
+
+Budgets are **60 estimated tokens** for a description and **1,500** for a body,
+enforced by:
+
+```bash
+bash scripts/skill-lint.sh    # per-skill description and body token estimates
+bash scripts/selftest.sh      # the lint plus every skill's own self-test
+```
+
+The lint also fails if generated output (reports, analyses, audit artifacts) is
+tracked inside a skill directory — those ship to every install and an agent
+reading the package can mistake them for instructions.
+
+See [AGENTS.md](AGENTS.md) for the full convention.
