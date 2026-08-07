@@ -406,6 +406,43 @@ assert_not_grep "scan exempts a file header" "Renders collected rows" "$out"
 assert_not_grep "scan exempts a comment documenting a declaration" "Resolves a branch" "$out"
 assert_grep "scan still flags a block inside a body" "comment-block" "$out"
 
+# Rustdoc (///, //!) states a contract: rung 2, never an ordinary comment
+# block. A //// divider is not documentation and stays subject to the rule.
+cat > doc.rs <<'EOF'
+/// Expands to the boilerplate impls, at some length across multiple
+/// lines, so a detector that reads rustdoc as an ordinary comment
+/// block would flag it even though it documents the macro below.
+macro_rules! boilerplate {
+    () => {};
+}
+
+/// Parses a config file into a Config. Returns an error when the file
+/// is missing or malformed, because the caller decides whether a
+/// default configuration is an acceptable substitute.
+#[derive(Debug)]
+pub struct ConfigParser {}
+
+mod tests {
+    //! Verifies the parser against the fixtures directory, spanning
+    //! enough lines that the block detector would fire if inner docs
+    //! were judged as ordinary commentary rather than documentation.
+    use super::*;
+}
+
+fn after() {
+    do_thing();
+    //// --------------------
+    //// A slash divider is not documentation and reads as an ordinary
+    //// comment block when it rambles on for this many lines in a body.
+    do_more();
+}
+EOF
+out=$(node "$S/scan.mjs" doc.rs 2>&1)
+assert_not_grep "scan exempts /// rustdoc above a macro" "boilerplate impls" "$out"
+assert_not_grep "scan exempts /// rustdoc above an attribute" "Parses a config file" "$out"
+assert_not_grep "scan exempts //! inner docs" "fixtures directory" "$out"
+assert_grep "scan judges a //// divider as an ordinary comment" "slash divider" "$out"
+
 cat > label.sh <<'EOF'
 #!/usr/bin/env bash
 list() {
