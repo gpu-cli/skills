@@ -1,6 +1,6 @@
 ---
 name: lyrebird
-description: "Brand-aware content strategy and platform-native posts for Blog, LinkedIn, Reddit, and X. Use to establish a writing voice, brainstorm ideas, hone a thesis, write a post, or adapt one to another platform. Invoke as /lyrebird."
+description: "Writes brand-aware posts for Blog, LinkedIn, Reddit, and X. Use to set a voice, draft a post, or adapt one across platforms."
 argument-hint: "[command] [input]"
 user-invocable: true
 license: Apache-2.0

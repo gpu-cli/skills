@@ -1,6 +1,6 @@
 ---
 name: skill-shield
-description: "Security audit and remediation for agent skills. Use to check a SKILL.md and its bundled scripts for prompt injection, data exfiltration, excessive permissions, or supply-chain risk. Invoke as /skill-shield <path> [--remediate]."
+description: "Audits and remediates agent skills for prompt injection, data exfiltration, excessive permissions, and supply-chain risk."
 version: 1.0.0
 author: gpu-cli
 tags: [security, audit, skills, supply-chain, owasp, remediation]

@@ -1,6 +1,6 @@
 ---
 name: research-spike
-description: "Runs a time-boxed technical spike, competitive comparison, or feasibility analysis and writes a cited markdown report. Use for architecture decisions or when evaluating an unfamiliar technology or library."
+description: "Runs a time-boxed spike, tool comparison, or feasibility study and writes a cited report. Use for architecture decisions."
 ---
 
 # Research Spike

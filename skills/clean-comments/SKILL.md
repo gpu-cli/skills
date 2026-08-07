@@ -1,6 +1,6 @@
 ---
 name: clean-comments
-description: "Deletes agent commentary from code and rewrites what survives as one plain line. Use when cleaning comments in a diff, file, or repo, reviewing AI-written code before a PR, or installing comment rules. Invoke as /clean-comments."
+description: "Deletes agent commentary and rewrites what survives as one plain line. Use when cleaning comments in a diff or repo."
 ---
 
 # Clean Comments

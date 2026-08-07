@@ -1,6 +1,6 @@
 ---
 name: context-curation
-description: "Analyzes staged git changes and evaluates agentic context files (Claude, Codex, Cursor, etc.) to suggest additions or removals. Use after staging changes before committing."
+description: "Checks whether staged changes should update CLAUDE.md or other agent context files. Use before committing."
 ---
 
 # Context Curation

@@ -1,6 +1,6 @@
 ---
 name: tui-clone
-description: "Explores a TUI in tmux and documents every view, keybinding, and layout as a clone-ready spec. Use when asked to reverse-engineer, analyze, or document a terminal UI such as Claude Code, lazygit, or any ratatui app."
+description: "Explores a TUI in tmux and documents every view, keybinding, and layout. Use to reverse-engineer or clone a terminal UI."
 ---
 
 # TUI Clone
