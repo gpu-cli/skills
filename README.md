@@ -356,12 +356,14 @@ already made — which is what separates it from asking "shorter please", where
 the agent frequently re-derives the whole answer and the preference evaporates
 next turn.
 
-**What survives:** errors, warnings about destructive or irreversible actions,
-and the concrete values you need — numbers, paths, commands, URLs. They are
-folded into the sentences available rather than given their own, and they are
-the one thing allowed to bend the cap. The full response is still on screen, so
-whatever cannot fit is pointed at ("the four steps above") rather than dropped
-silently.
+**What survives:** ranked, in this order — errors and failures; warnings about
+destructive actions and risks you are walking toward; what you must do next,
+including a decision only you can make; and the concrete values those depend on
+— numbers, paths, commands, URLs. Everything is folded into the sentences
+available rather than given its own, and when the first three genuinely cannot
+fit, they may bend the cap by a single sentence — concrete values never do. The
+full response is still on screen, so whatever cannot fit is pointed at ("the
+four steps above") rather than dropped silently.
 
 Under a sticky cap, **the cap governs the response, never the work.** A capped
 turn still gets the full investigation; only the report is short.

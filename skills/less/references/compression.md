@@ -267,13 +267,13 @@ delete them*.
 
 ## Degenerate sources
 
+`SKILL.md`'s edge cases cover the empty and already-short sources; these are
+the shapes beyond them:
+
 | The source is | Do |
 | --- | --- |
-| Already at or under the cap | Return it verbatim. Do not pad, and do not announce that it already fit |
 | Only a code block | Return the block plus at most one sentence |
 | A question to the reader | Compress the question. Never answer it on their behalf |
 | A report that ends by asking for a decision | The ask is row 3 of the floor — keep it, and still never decide on their behalf |
-| A greeting, an acknowledgment, or empty | Say there is nothing to compress, in one sentence |
-| Itself `/less` output | Compress again from it; it is the previous response |
 | A procedure whose steps are the payload | Prose the steps if they fit ("run X, then Y"). If they do not, name how many there are and point up at them |
 | Several unrelated findings | Lead with the most consequential and point at the rest ("plus three smaller issues above") |
