@@ -334,6 +334,49 @@ non-deterministic, and rewrites code the author has already reviewed.
 
 ---
 
+### less
+
+Re-renders the previous response at a length you choose — one sentence, two, or
+a paragraph — without redoing the work that produced it. For the moments when
+the answer was right and three times longer than you needed.
+
+**Invoke:** `/less 1`, `/less 2`, `/less paragraph`, `/less 2 set`, `/less unset`
+
+**How it works:**
+
+1. `/less N` re-renders the previous response in at most N sentences; `/less
+   paragraph`, or bare `/less`, in at most one paragraph
+2. `/less N set` does both halves — compresses now, then caps every later
+   response until you lift it
+3. `/less unset` drops the cap
+
+**The guarantee:** compression reads the previous response and nothing else. No
+tool calls, no re-reading files, no fresh reasoning, and no claim that was not
+already made — which is what separates it from asking "shorter please", where
+the agent frequently re-derives the whole answer and the preference evaporates
+next turn.
+
+**What survives:** errors, warnings about destructive or irreversible actions,
+and the concrete values you need — numbers, paths, commands, URLs. They are
+folded into the sentences available rather than given their own, and they are
+the one thing allowed to bend the cap. The full response is still on screen, so
+whatever cannot fit is pointed at ("the four steps above") rather than dropped
+silently.
+
+Under a sticky cap, **the cap governs the response, never the work.** A capped
+turn still gets the full investigation; only the report is short.
+
+**Limitations:** a sticky cap lives in conversation context, so it can fade when
+the context is compacted and does not survive into a new session — re-issue
+`/less N set` if it stops applying. That is the deliberate trade: the durable
+alternative is a hook and a state file, which would tie the skill to one agent.
+
+**Path:** `skills/less`
+
+**Test:** `bash skills/less/tests/selftest.sh`
+
+---
+
 ## Contributing
 
 Skills are billed in two places, and the difference drives how they are written.
