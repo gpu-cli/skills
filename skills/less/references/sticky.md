@@ -5,23 +5,18 @@ there is no state file, no hook, and nothing agent-specific about it.
 
 ## The cap governs the response, never the work
 
-This is the rule the whole mode depends on. Under `/less 1 set`, the next
-request still gets the full investigation: every file read, every test run,
-every check that request deserved. What changes is the report, not the rigour.
-
-A capped turn is therefore **not** a compression. Rule 1 in `SKILL.md`
+`SKILL.md` states this rule and it is the one the whole mode depends on. What
+this file adds is the corollary: a capped turn is **not** a compression. Rule 1
 ("compress, never recompute") applies to the `/less` command itself, which
 re-renders a response that already exists. It does not apply to a capped turn,
 where the work is genuinely happening and the cap only decides how much of it
 reaches the page.
 
-Never let a cap become a reason to skip a step, guess instead of checking, or
-stop asking a question the work needs answered.
-
 ## `set`
 
 `/less 2 set` does both halves: it compresses the previous response to two
-sentences now, and caps every later response at two sentences until unset.
+sentences now, and caps every later response at two sentences until unset. A
+bare `/less set` is `/less paragraph set`, matching the bare default.
 
 Acknowledge activation exactly once, appended to that first compressed
 response as plain parenthetical text — never fenced, because the one free code

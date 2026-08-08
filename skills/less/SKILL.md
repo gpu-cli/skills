@@ -22,6 +22,9 @@ the work that produced it.
 | `unset` | Drop the active cap, confirm in one sentence |
 | anything else | One sentence of usage, nothing more |
 
+A bare `set` takes the paragraph default, so `/less set` is `/less paragraph
+set`.
+
 ## Rules
 
 1. **Compress, never recompute.** The source is the last message the reader
@@ -42,8 +45,12 @@ the work that produced it.
 6. **Cut in this order:** process narration, roads not taken, hedging that
    carries no risk or decision of its own, background.
 
-Rules 1 and 4 outrank the rest. The full response is still on screen, so point
-at what will not fit ("the four steps above") rather than dropping it silently.
+Rules 1 and 4 outrank the rest, and their collision has exactly one release
+valve: an error, a destructive-action warning, or the reader's required next
+step that truly cannot fold in may bend the cap by a single sentence, once per
+response — concrete values never earn the bend. The full response is still on
+screen, so point at what will not fit ("the four steps above") rather than
+dropping it silently.
 
 **A cap governs the response, never the work.** A capped turn still gets the
 full investigation — every file read, every test run, every check that request
@@ -56,8 +63,9 @@ is more than plain prose, or when the cap is one sentence.
 
 ## Edge cases
 
-- **Nothing substantive to compress** — the previous turn was a question, a
-  greeting, or empty: say so in one sentence and answer nothing new.
+- **Nothing substantive to compress** — the previous turn was a greeting, an
+  acknowledgment, or empty: say so in one sentence and answer nothing new. A
+  question is substantive: compress it, never answer it on the reader's behalf.
 - **Already within the cap**: return it unchanged. Do not pad it, and do not
   announce that it already fit.
 - **Previous response was itself `/less` output**: compress again from it.
