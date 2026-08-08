@@ -52,9 +52,11 @@ const EDIT_HISTORY = new RegExp([
 ].join('|'), 'i');
 
 // A comment above a declaration documents it, so the one-line rule does not
-// apply. A comment before any code is a file header and does the same job.
+// apply. A comment before any code is a file header and does the same job. An
+// attribute or decorator line sits between a doc comment and its item and
+// counts the same.
 const DECLARATION =
-  /\b(function|def|fn|func|class|struct|interface|type|enum|const|let|var|public|private|protected|static|async|module|package)\b|^\s*[\w.$]+\s*\(\)\s*\{|^\s*[A-Za-z_$][\w$]*\s*=/;
+  /\b(function|def|fn|func|class|struct|interface|type|enum|const|let|var|public|private|protected|static|async|module|package|pub|trait|impl)\b|^\s*[\w.$]+\s*\(\)\s*\{|^\s*[A-Za-z_$][\w$]*\s*=|^\s*(#\[|@\w)/;
 
 const DIVIDER = /[-=*_]{3,}/;
 
@@ -135,6 +137,7 @@ function group(comments) {
     const prev = out[out.length - 1];
     const shebang = /^#!/.test(c.raw) || (prev && /^#!/.test(prev.raw));
     if (prev && !shebang && c.kind === 'line' && prev.kind === 'line'
+      && !!c.doc === !!prev.doc
       && c.startLine === prev.endLine + 1 && c.col === prev.col) {
       prev.endLine = c.endLine;
       prev.raw += '\n' + c.raw;
@@ -167,7 +170,7 @@ function detect(g, ctx) {
   if (body.replace(/[^a-z0-9]/gi, '').length < 3) return null;
 
   const words = body.split(/\s+/).filter(Boolean);
-  const isDoc = g.kind === 'doc';
+  const isDoc = g.kind === 'doc' || g.doc === true;
   const next = ctx.codeLines.slice(g.endLine + 1).find((l) => l.trim() !== '');
   const isHeader = !ctx.codeLines.slice(0, g.startLine)
     .some((l) => l.trim() !== '' && !l.startsWith('#!'));

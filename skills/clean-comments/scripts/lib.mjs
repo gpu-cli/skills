@@ -21,7 +21,10 @@ const SQ_RAW = { q: "'", esc: false };
 const BT = { q: '`', esc: true, multiline: true };
 const BT_RAW = { q: '`', esc: false, multiline: true };
 
-const C_LIKE = { line: ['//'], block: [['/*', '*/']], strings: [DQ, SQ] };
+// /// and //! state a contract (rustdoc, C# XML docs, Doxygen), so they are
+// doc comments, not commentary. //// is a divider, not documentation.
+const DOC_LINE = ['///', '//!'];
+const C_LIKE = { line: ['//'], block: [['/*', '*/']], strings: [DQ, SQ], docLine: DOC_LINE };
 const HASH = { line: ['#'], block: [], strings: [DQ, SQ], lineNeedsBoundary: true };
 // JS-family: regex literals can contain // and /*.
 const JS = { line: ['//'], block: [['/*', '*/']], strings: [DQ, SQ, BT], regex: true };
@@ -51,7 +54,7 @@ const SYNTAX = {
 
   go: { line: ['//'], block: [['/*', '*/']], strings: [DQ, BT_RAW] },
   // Rust: /* */ nests, and '"' is a char literal, not a string opener.
-  rs: { line: ['//'], block: [['/*', '*/']], strings: [DQ], nestedBlock: true, charLit: true },
+  rs: { line: ['//'], block: [['/*', '*/']], strings: [DQ], nestedBlock: true, charLit: true, docLine: DOC_LINE },
   css: CSS, scss: SCSS, sass: SCSS, less: SCSS, styl: SCSS,
   sql: { line: ['--'], block: [['/*', '*/']], strings: [DQ, SQ_RAW] },
   graphql: HASH, gql: HASH,
@@ -68,7 +71,8 @@ const SYNTAX = {
   nim: { line: ['#'], block: [['#[', ']#']], strings: [DQ, SQ], lineNeedsBoundary: true },
 
   lua: { line: ['--'], block: [['--[[', ']]']], strings: [DQ, SQ] },
-  hs: { line: ['--'], block: [['{-', '-}']], strings: [DQ], nestedBlock: true },
+  // Haddock doc markers: -- | documents the item below, -- ^ the one before.
+  hs: { line: ['--'], block: [['{-', '-}']], strings: [DQ], nestedBlock: true, docLine: ['-- |', '-- ^'] },
   clj: { line: [';'], block: [], strings: [DQ] },
   cljs: { line: [';'], block: [], strings: [DQ] },
   cljc: { line: [';'], block: [], strings: [DQ] },
@@ -96,6 +100,15 @@ function boundaryOk(line, i) {
 }
 
 const indentOf = (line) => line.match(/^[ \t]*/)[0].length;
+
+// True when a line comment at i opens with one of the syntax's doc markers.
+// Repeating the marker's last character (////, //!!) makes a divider, and a
+// divider judged as documentation would dodge the comment-block rule.
+function isDocLine(syn, line, i) {
+  return (syn.docLine ?? []).some(
+    (d) => at(line, i, d) && line[i + d.length] !== d[d.length - 1],
+  );
+}
 
 // A regex literal may follow an operator, an opening bracket, or a keyword —
 // anywhere a value can start. After a value, a slash is division.
@@ -275,7 +288,8 @@ export function tokenize(source, syn) {
         if (!at(line, i, open)) continue;
         block = {
           open, end: close, depth: 1, startLine: ln, col: i, raw: open,
-          kind: open === '/*' && at(line, i, '/**') ? 'doc' : 'block',
+          kind: (open === '/*' && at(line, i, '/**'))
+            || (open === '(*' && at(line, i, '(**')) ? 'doc' : 'block',
         };
         i += open.length;
         matched = true;
@@ -288,6 +302,7 @@ export function tokenize(source, syn) {
         if (syn.lineNeedsBoundary && !boundaryOk(line, i)) continue;
         comments.push({
           startLine: ln, endLine: ln, col: i, raw: line.slice(i), kind: 'line',
+          doc: isDocLine(syn, line, i),
         });
         i = line.length;
         matched = true;

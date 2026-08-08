@@ -1,6 +1,6 @@
 ---
 name: tui-review
-description: "Reviews a terminal UI's UX against 10 dimensions and grades it. Use when asked to review, audit, or critique a TUI's responsiveness, keybindings, layout, or visual design. Runs it in tmux and screenshots each state."
+description: "Runs a TUI in tmux, screenshots each state, and grades its UX. Use to review or critique a terminal UI."
 ---
 
 # TUI Review
@@ -62,39 +62,13 @@ procedure, pass/fail criteria, and best-in-class example behind each one.
 7. **Layout & Resize** — usable at 80x24, scales to 200x50+
 8. **Keyboard Design** — all features keyboard-reachable, shortcuts discoverable
 9. **Permission Flows** — destructive actions preview and require confirmation
-10. **Visual Design & Color** — color carries meaning, adequate contrast, consistent palette
-
-## Style Opinion: Borders
-
-Flag excessive borders. Many TUIs wrap the whole screen in box-drawing
-(`╭╮╰╯│─`), spending real estate and adding noise for no information gain.
-
-- **Good** — borders that separate distinct regions (input vs conversation),
-  frame a modal over content, or group related controls.
-- **Bad** — a full outer border around the entire TUI, a border on every panel
-  where whitespace or a rule would do, or nested box-in-a-box.
-
-What the best do: Claude Code separates the input area with a horizontal rule
-and no outer border; OpenCode uses a `┃` left margin for message attribution;
-Codex borders only the header and status panels, leaving the conversation
-borderless. The pattern is **content-heavy areas borderless, chrome-heavy areas
-bordered**. Flag any TUI that borders the full screen as a WARNING.
+10. **Visual Design & Color** — color carries meaning, adequate contrast,
+    consistent palette, and borders that earn their place
 
 ## Grading
 
 A = no issues. B = minor polish needed. C = noticeable UX friction. D = broken
 workflows. F = unusable.
 
-## Quick Start for an Unknown TUI
-
-1. Launch and wait for ready, then screenshot the initial state and review it.
-2. Press `?` then `F1` to find help; screenshot if found.
-3. Try `/` for a command palette; screenshot if found.
-4. Try `Tab`, arrows, and `j`/`k` for navigation.
-5. Try `Escape` from every state you reach.
-6. Type text to find input areas.
-7. Submit something and screenshot the processing and response states.
-8. Take the four resize screenshots.
-9. Run the color assertions.
-10. Open every screenshot with the Read tool, then work through the remaining
-    dimension tests.
+Facing an app you know nothing about? [references/report.md](references/report.md)
+ends with a keypress order that surfaces the most in the fewest moves.

@@ -65,3 +65,26 @@ If compaction happens mid-audit:
 
 If you cannot determine the last completed phase, restart the audit. The
 process is idempotent — re-running produces the same result.
+
+## Remediation Integrity Bundle
+
+Generated inside `skills/skill-shield/artifacts/<skill-name>-shielded/` during
+`--remediate`, after the fixes are applied.
+
+| File | Contents |
+|---|---|
+| `PERMISSIONS.md` | Every filesystem path, network destination, tool, and secret the hardened skill accesses, each with the reason it needs it |
+| `CHECKSUMS.sha256` | SHA-256 of every file in the hardened package |
+| `PROVENANCE.md` | Source origin, audit timestamp, the findings that motivated each change, and the changes made |
+
+Then summarize inline — and only this, since full detail belongs in the report
+files:
+
+- What changed, and which finding each change resolves.
+- What was deliberately left alone, with the risk-acceptance note for any
+  declined HIGH or CRITICAL fix.
+- How to verify: `sha256sum --check CHECKSUMS.sha256` run from inside the
+  hardened directory.
+
+The original skill is never modified in place, so the user can diff the two
+directories to see exactly what the remediation did.

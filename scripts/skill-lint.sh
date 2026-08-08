@@ -11,40 +11,52 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILLS_DIR="$ROOT/skills"
 ALLOW_FILE="$ROOT/scripts/skill-lint.allow"
 
-DESC_MAX="${SKILL_LINT_DESC_MAX:-60}"
-BODY_MAX="${SKILL_LINT_BODY_MAX:-1500}"
+DESC_MAX="${SKILL_LINT_DESC_MAX:-45}"
+BODY_MAX="${SKILL_LINT_BODY_MAX:-2000}"
 
-# Estimated tokens for a UTF-8 text stream, at the usual ~4 characters per
-# token for English prose. Close enough to rank skills and hold a budget.
+# Characters per token. Claude Code picks this per model: 4 for Claude 3.x and
+# 4.x, 3 for every model since. Match the model you actually run.
+BYTES_PER_TOKEN="${SKILL_LINT_BYTES_PER_TOKEN:-3}"
+
+# Claude Code's own estimate: round(chars / bytesPerToken), half away from zero.
 est_tokens() {
     local chars
     chars=$(wc -m | tr -d ' ')
-    echo $(((chars + 3) / 4))
+    echo $(((chars * 2 + BYTES_PER_TOKEN) / (BYTES_PER_TOKEN * 2)))
 }
 
-# Value of the frontmatter `description:` key, with block scalars and
-# continuation lines folded onto one line and surrounding quotes stripped.
-read_description() {
-    awk '
+# How Claude Code renders that estimate in the /skills picker.
+display_tokens() {
+    if [ "$1" -lt 20 ]; then
+        echo '< 20'
+    else
+        echo "~$(((($1 + 5) / 10) * 10))"
+    fi
+}
+
+# Value of a frontmatter key, with block scalars and continuation lines folded
+# onto one line and surrounding quotes stripped.
+read_field() {
+    awk -v key="$2" '
         NR == 1 && $0 != "---" { exit }
         NR == 1 { fm = 1; next }
         fm && $0 == "---" { exit }
         fm {
-            if (in_desc) {
+            if (in_val) {
                 if ($0 ~ /^[ \t]+[^ \t]/) {
                     line = $0
                     sub(/^[ \t]+/, "", line)
                     printf " %s", line
                     next
                 }
-                in_desc = 0
+                in_val = 0
             }
-            if ($0 ~ /^description:[ \t]*/) {
-                val = $0
-                sub(/^description:[ \t]*/, "", val)
+            if (index($0, key ":") == 1) {
+                val = substr($0, length(key) + 2)
+                sub(/^[ \t]*/, "", val)
                 if (val == ">" || val == "|" || val == ">-" || val == "|-") val = ""
                 printf "%s", val
-                in_desc = 1
+                in_val = 1
             }
         }
     ' "$1" | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/" -e 's/^ *//' -e 's/ *$//'
@@ -74,21 +86,29 @@ allowed_body_max() {
 failures=0
 desc_total=0
 
-printf '%-18s %14s %14s\n' 'SKILL' 'DESC TOKENS' 'BODY TOKENS'
-printf '%-18s %14s %14s\n' '------------------' '--------------' '--------------'
+printf '%-18s %12s %8s %13s\n' 'SKILL' 'ALWAYS-ON' 'SHOWN' 'BODY TOKENS'
+printf '%-18s %12s %8s %13s\n' '------------------' '------------' '--------' '-------------'
 
 for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
     [ -e "$skill_md" ] || continue
     skill="$(basename "$(dirname "$skill_md")")"
 
-    desc="$(read_description "$skill_md")"
+    desc="$(read_field "$skill_md" description)"
     if [ -z "$desc" ]; then
-        printf '%-18s %14s %14s  FAIL: no frontmatter description\n' "$skill" '-' '-'
+        printf '%-18s %12s %8s %13s  FAIL: no frontmatter description\n' "$skill" '-' '-' '-'
         failures=$((failures + 1))
         continue
     fi
 
-    desc_tokens=$(printf '%s' "$desc" | est_tokens)
+    # Claude Code bills `[name, description, whenToUse].join(" ")`, not the
+    # description alone — the name rides along on every session too.
+    name="$(read_field "$skill_md" name)"
+    when="$(read_field "$skill_md" whenToUse)"
+    routing="$name $desc"
+    [ -n "$when" ] && routing="$routing $when"
+
+    desc_tokens=$(printf '%s' "$routing" | est_tokens)
+    desc_shown=$(display_tokens "$desc_tokens")
     body_tokens=$(read_body "$skill_md" | est_tokens)
     limit="$(allowed_body_max "$skill")"
     desc_total=$((desc_total + desc_tokens))
@@ -104,12 +124,12 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
         failures=$((failures + 1))
     fi
 
-    printf '%-18s %14s %14s%s%s\n' \
-        "$skill" "$desc_tokens" "$body_tokens" "$desc_flag" "$body_flag"
+    printf '%-18s %12s %8s %13s%s%s\n' \
+        "$skill" "$desc_tokens" "$desc_shown" "$body_tokens" "$desc_flag" "$body_flag"
 done
 
-printf '%-18s %14s\n' '------------------' '--------------'
-printf '%-18s %14s   (always-on, every session)\n' 'TOTAL DESC' "$desc_total"
+printf '%-18s %12s\n' '------------------' '------------'
+printf '%-18s %12s   (every session, used or not)\n' 'TOTAL ALWAYS-ON' "$desc_total"
 
 # Generated outputs must never be tracked inside a skill directory: they ship to
 # every install and an agent reading the skill can mistake them for instructions.

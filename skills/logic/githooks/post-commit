@@ -6,24 +6,32 @@
 # row per commit on a tracked branch, so the trail can never end up empty.
 #
 # Hard rule: this must NEVER fail a commit or noticeably slow it. Every path
-# exits 0, and the whole body is guarded. Set LOGIC_HOOK_DISABLE=1 to skip.
+# exits 0, and the capture runs under a wall-clock bound so a wedged backend
+# cannot hold the commit open. Losing one stub is recoverable; a commit that
+# never returns is not.
+#
+# Set LOGIC_HOOK_DISABLE=1 to skip, LOGIC_HOOK_TIMEOUT to change the bound.
 
 [ -n "${LOGIC_HOOK_DISABLE:-}" ] && exit 0
 
-{
-  root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+timeout_s="${LOGIC_HOOK_TIMEOUT:-5}"
+
+# Every path returns 0: the caller is git, mid-commit, and a non-zero status
+# here is noise at best.
+capture() {
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
   lib="$root/.logic/runtime/logic.sh"
-  [ -f "$lib" ] || exit 0
+  [ -f "$lib" ] || return 0
   # shellcheck source=/dev/null
-  . "$lib" 2>/dev/null || exit 0
+  . "$lib" 2>/dev/null || return 0
 
-  logic_is_tracked || exit 0
+  logic_is_tracked || return 0
 
-  sha=$(git rev-parse HEAD 2>/dev/null) || exit 0
+  sha=$(git rev-parse HEAD 2>/dev/null) || return 0
 
   # One stub per commit: skip if we already logged this SHA.
   existing=$(logic_find_stub_by_sha "$sha" 2>/dev/null)
-  [ -n "$existing" ] && exit 0
+  [ -n "$existing" ] && return 0
 
   subject=$(git log -1 --format='%s' "$sha" 2>/dev/null)
   author=$(git log -1 --format='%an' "$sha" 2>/dev/null)
@@ -31,6 +39,33 @@
 
   logic_log_row "stub" "${author:-unknown}" "" "${subject:-"(no subject)"}" "" "commit ${short}" "" "$sha" "unknown" \
     >/dev/null 2>&1
-} >/dev/null 2>&1 || true
+  return 0
+}
+
+# `timeout` cannot wrap a shell function, and the capture needs the sourced
+# runtime, so bound it with a watchdog instead: run the work in the
+# background, kill it if it outlives the budget, and wait either way so the
+# stub is on disk before git returns.
+#
+# `set -m` puts the worker in its own process group, which is what makes the
+# bound real. Killing the worker alone leaves whatever it was blocked in still
+# running and still holding the descriptors it inherited from git, and git
+# waits on those — so the commit stays stuck for exactly as long as the fix was
+# supposed to prevent. Kill the group.
+set -m 2>/dev/null
+capture </dev/null >/dev/null 2>&1 &
+worker=$!
+set +m 2>/dev/null
+
+(
+  sleep "$timeout_s" 2>/dev/null
+  kill -KILL -"$worker" 2>/dev/null || kill -KILL "$worker" 2>/dev/null
+) </dev/null >/dev/null 2>&1 &
+watchdog=$!
+
+wait "$worker" 2>/dev/null
+
+kill -KILL "$watchdog" 2>/dev/null
+wait "$watchdog" 2>/dev/null
 
 exit 0

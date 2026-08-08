@@ -1,6 +1,6 @@
 ---
 name: clean-comments
-description: "Deletes agent commentary from code and rewrites what survives as one plain line. Use when cleaning comments in a diff, file, or repo, reviewing AI-written code before a PR, or installing comment rules. Invoke as /clean-comments."
+description: "Deletes agent commentary and rewrites what survives as one plain line. Use when cleaning comments in a diff or repo."
 ---
 
 # Clean Comments
@@ -33,28 +33,18 @@ Judge every comment in scope against this ladder and stop at the first match.
 [references/rules.md](references/rules.md) holds the full test and examples for
 each rung.
 
-1. **Directive** — a pragma the toolchain reads (`eslint-disable`, `# noqa`,
-   `//go:generate`, `# type: ignore`), a license header, a shebang, or a
-   generated-file marker. **Keep it exactly as written.**
-2. **Doc comment on a public interface** — a docstring, JSDoc, or rustdoc block
-   that states a contract. **Keep the contract**, drop padding that repeats the
-   signature. The one-line rule does not apply.
-3. **Commented-out code** — **delete**. Version control already has it.
-4. **Restates the code** — the comment says what the next line or the function
-   name already says. **Delete.**
-5. **Narrates an edit** — "added", "updated", "now handles", "refactored",
-   "as requested". **Delete**, keeping any reason it carried.
-6. **Names the agent or the session** — "I've", "as an AI", "Claude", "per your
-   request". **Delete the reference.** Keep the technical content, if any.
-7. **Cites an unshared tracker** — an issue ID that a reader of this repository
-   cannot resolve. **Delete the ID**, keep the substance.
-8. **Marks unfinished work** — **rewrite** to `TODO:`, `FIXME:`, `HACK:`, or
-   `XXX:` so tooling can find it.
-9. **Explains a constraint, a bug fix, unidiomatic code, or a business rule** —
-   **keep it.** Rewrite it to one line in the style of
-   [references/ste.md](references/ste.md).
-10. **You cannot tell what it means** — **flag it, do not delete it.** An
-    unclear comment usually marks unclear code, which is the human's call.
+| # | The comment… | Do |
+|---|---|---|
+| 1 | Is a **directive** the toolchain reads — `eslint-disable`, `# noqa`, `//go:generate`, `# type: ignore` — or a license header, shebang, or generated-file marker | **Keep exactly as written** |
+| 2 | Is a **doc comment on a public interface** stating a contract | **Keep the contract**, drop padding that repeats the signature. The one-line rule does not apply |
+| 3 | Is **commented-out code** | **Delete** — version control already has it |
+| 4 | **Restates the code** the next line or the function name already says | **Delete** |
+| 5 | **Narrates an edit** — "added", "updated", "now handles", "refactored", "as requested" | **Delete**, keeping any reason it carried |
+| 6 | **Names the agent or session** — "I've", "as an AI", "Claude", "per your request" | **Delete the reference**, keep the technical content |
+| 7 | **Cites an unshared tracker** a reader of this repo cannot resolve | **Delete the ID**, keep the substance |
+| 8 | **Marks unfinished work** | **Rewrite** to `TODO:`, `FIXME:`, `HACK:`, or `XXX:` so tooling can find it |
+| 9 | **Explains** a constraint, bug fix, unidiomatic code, or business rule | **Keep**, rewritten to one line in the style of [references/ste.md](references/ste.md) |
+| 10 | **You cannot tell what it means** | **Flag it, do not delete it.** An unclear comment usually marks unclear code, which is the human's call |
 
 ## Rules of thumb
 
