@@ -509,6 +509,104 @@ out=$(bash "$S/scope.sh" 2>&1)
 assert_grep "scope defaults to changed files" "src/real.js" "$out"
 git checkout -q src/real.js
 
+# --- branch scope -----------------------------------------------------------
+#
+# A branch must own the lines it changed and nothing else. The case that gets
+# this wrong is a base that moved: diffing against the base ref instead of the
+# fork point reads the base's later commits backwards, so a comment main
+# deleted and the branch merely kept looks like the branch's work.
+
+BR="$TMP/branchcase"
+mkdir -p "$BR" && (
+  cd "$BR" || exit 1
+  git init -q -b main
+  git config user.name "Selftest Bot"
+  git config user.email "selftest@example.com"
+
+  printf '// Loop through the users, as requested by Claude\nconst a = 1;\n' > kept.js
+  printf 'const u = 1;\n' > untouched.js
+  git add -A && git commit -q -m init
+
+  git checkout -q -b feat
+  # main cleans that comment up after the fork point
+  git checkout -q main
+  printf 'const a = 1;\n' > kept.js
+  git add -A && git commit -q -m "main cleans"
+  # the branch leaves it alone and adds its own work
+  git checkout -q feat
+  printf '// TODO(ACME-99): branch owns this\nconst n = 2;\n' > added.js
+  git add -A && git commit -q -m "branch work"
+  printf 'const w = 3; // I added this line for you\n' >> added.js
+) || bad "branch fixture setup"
+
+cd "$BR" || exit 1
+
+out=$(bash "$S/scope.sh" --branch --base main 2>&1)
+assert_grep "branch scope includes a file the branch added" "added.js" "$out"
+assert_not_grep "branch scope excludes untouched files" "untouched.js" "$out"
+
+base=$(bash "$S/scope.sh" --print-base --base main 2>&1)
+assert "print-base resolves the fork point" "[ \"$base\" = \"$(git merge-base main HEAD)\" ]"
+
+out=$(bash "$S/scope.sh" --branch --base main | tr '\n' '\0' \
+  | xargs -0 -r node "$S/scan.mjs" --diff-only --base "$base" 2>&1)
+assert_grep "branch scan finds the branch's own comment" "ACME-99" "$out"
+assert_grep "branch scan finds uncommitted branch work" "I added this line" "$out"
+assert_not_grep "branch scan ignores a comment only the base removed" "as requested by Claude" "$out"
+
+# The same scan against the base ref is what the fork point exists to prevent.
+# It only bites once the file re-enters scope with uncommitted work of its own,
+# which is exactly the state below.
+printf 'const later = 4;\n' >> kept.js
+out=$(bash "$S/scope.sh" --branch --base main | tr '\n' '\0' \
+  | xargs -0 -r node "$S/scan.mjs" --diff-only --base main 2>&1)
+assert_grep "scanning from the base ref misattributes it (why --print-base exists)" \
+  "as requested by Claude" "$out"
+out=$(bash "$S/scope.sh" --branch --base main | tr '\n' '\0' \
+  | xargs -0 -r node "$S/scan.mjs" --diff-only --base "$base" 2>&1)
+assert_not_grep "the fork point does not misattribute it" "as requested by Claude" "$out"
+git checkout -q kept.js
+
+# A pushed branch tracks origin/<itself>. Taking that as the base would resolve
+# to HEAD and quietly shrink a branch scope to the uncommitted files only.
+git init -q --bare "$TMP/branch-remote.git"
+git remote add origin "$TMP/branch-remote.git"
+git push -q origin main 2>/dev/null
+git push -q -u origin feat 2>/dev/null
+up=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+assert "the branch tracks its own counterpart" "[ \"$up\" = 'origin/feat' ]"
+pushed_base=$(bash "$S/scope.sh" --print-base 2>&1)
+assert "a pushed branch does not take itself as its base" \
+  "[ \"$pushed_base\" = \"$(git merge-base main HEAD)\" ]"
+out=$(bash "$S/scope.sh" --branch 2>&1)
+assert_grep "branch scope survives being pushed" "added.js" "$out"
+
+# An upstream naming a different branch is a deliberate base and is kept.
+git branch -q --set-upstream-to=origin/main feat 2>/dev/null
+assert "an upstream on another branch is honoured" \
+  "[ \"$(bash "$S/scope.sh" --print-base 2>&1)\" = \"$(git merge-base origin/main HEAD)\" ]"
+
+# Standing on the default branch with unpushed commits. Skipping the
+# self-tracking upstream must not fall through to the LOCAL main, which is HEAD
+# — that collapses the scope just as silently. origin/HEAD is unset here, which
+# is the state of every repo made by git init + git remote add.
+git checkout -q main
+git push -q -u origin main 2>/dev/null
+printf '// I refactored this per your request - Claude\nconst d = 1;\n' > ondefault.js
+git add -A && git commit -q -m "unpushed work on main"
+assert "origin/HEAD is unset for this case" \
+  "! git symbolic-ref --quiet refs/remotes/origin/HEAD >/dev/null 2>&1"
+def_base=$(bash "$S/scope.sh" --print-base 2>&1)
+assert "the default branch does not take itself as its base" \
+  "[ \"$def_base\" != \"$(git rev-parse HEAD)\" ]"
+assert "the default branch falls through to its remote counterpart" \
+  "[ \"$def_base\" = \"$(git merge-base origin/main HEAD)\" ]"
+out=$(bash "$S/scope.sh" --branch 2>&1)
+assert_grep "unpushed work on the default branch is in scope" "ondefault.js" "$out"
+git checkout -q feat
+
+cd "$TMP" || exit 1
+
 # --- install-guidance -------------------------------------------------------
 
 printf '# Agent Instructions\n\nBe careful.\n' > CLAUDE.md
@@ -536,6 +634,19 @@ assert_grep "install kept trailing content" "changed" "$(cat CLAUDE.md)"
 
 out=$(bash "$S/install-guidance.sh" --list 2>&1)
 assert_grep "install lists targets" "CLAUDE.md" "$out"
+
+# --- doc snippets parse -----------------------------------------------------
+#
+# The CI recipe and the pre-push hook are pasted whole by readers and are
+# exercised by nothing else, so a quoting slip in them fails at the reader's
+# shell rather than here.
+
+if out=$(cd "$CORE_DIR" && python3 tests/check-doc-snippets.py 2>&1); then
+  ok "every doc snippet parses"
+else
+  bad "a doc snippet does not parse"
+  printf '%s\n' "$out"
+fi
 
 # --- results ----------------------------------------------------------------
 

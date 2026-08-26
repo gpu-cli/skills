@@ -6,8 +6,10 @@
 #   scope.sh --branch        files this branch changed vs. its base
 #   scope.sh --all           every source file in the repository
 #   scope.sh <path>...       the given files or directories
+#   scope.sh --print-base    print the fork point to scan a branch from
 #
-# Requires: git. Prints nothing and exits 0 when the scope is empty.
+# Accepts --base <ref> to override the base branch. Requires: git. Prints
+# nothing and exits 0 when the scope is empty.
 
 set -euo pipefail
 
@@ -16,12 +18,14 @@ SELF_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 . "$SELF_DIR/lib.sh"
 
 mode=changed
+print_base=0
 paths=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --branch) mode=branch ;;
     --all) mode=all ;;
+    --print-base) print_base=1 ;;
     --base) [ $# -ge 2 ] || cc_die "--base needs a ref"; shift; CC_BASE_REF="$1" ;;
     -h|--help) sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) cc_die "unknown option: $1" ;;
@@ -31,6 +35,16 @@ while [ $# -gt 0 ]; do
 done
 
 cc_require_repo
+
+# --print-base answers a different question from the scope listing, so it
+# prints the ref alone and stops.
+if [ "$print_base" -eq 1 ]; then
+  mb=$(cc_merge_base "${CC_BASE_REF:-}") \
+    || cc_die "cannot resolve a base ref; pass --base <ref>"
+  [ -n "$mb" ] || cc_die "no common ancestor with the base ref"
+  printf '%s\n' "$mb"
+  exit 0
+fi
 
 # quotepath=off keeps non-ASCII names literal; octal-escaped quoting would
 # make every downstream file test fail and silently drop the file.

@@ -9,10 +9,11 @@ stops the mess being made. Offer it the first time you clean a repository.
 ## Run it
 
 ```bash
-bash scripts/install-guidance.sh --list    # which files were detected
-bash scripts/install-guidance.sh           # dry run: prints the diff
-bash scripts/install-guidance.sh --write   # apply
-bash scripts/install-guidance.sh --write --file docs/AGENTS.md
+SKILL=.claude/skills/clean-comments   # wherever `npx skills add` put it; run from the target repo
+bash "$SKILL/scripts/install-guidance.sh" --list    # which files were detected
+bash "$SKILL/scripts/install-guidance.sh"           # dry run: prints the diff
+bash "$SKILL/scripts/install-guidance.sh" --write   # apply
+bash "$SKILL/scripts/install-guidance.sh" --write --file docs/AGENTS.md
 ```
 
 It detects `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `CONVENTIONS.md`,
