@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: gather raw material for reconstructing a decision trail when
+# decision-trail: gather raw material for reconstructing a decision trail when
 # tracking was off. Emits JSON only — it never writes rows. The model turns this
 # into inferred rows (actor="inferred", why phrased as a hypothesis), shown
 # behind a warning banner.
@@ -17,18 +17,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/lib.sh"
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for reconstruct" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required for reconstruct" >&2; exit 1; }
 
 branch=""
 [ -n "${1:-}" ] && branch="$1"
-[ -z "$branch" ] && branch="$(logic_current_branch)"
+[ -z "$branch" ] && branch="$(dt_current_branch)"
 
-ref=$(logic_resolve_ref "$branch") || {
-  echo "logic: cannot resolve branch '$branch' to a git ref (no local branch, no origin/$branch)." >&2
+ref=$(dt_resolve_ref "$branch") || {
+  echo "decision-trail: cannot resolve branch '$branch' to a git ref (no local branch, no origin/$branch)." >&2
   exit 1
 }
 
-base="$(logic_default_base 2>/dev/null)"
+base="$(dt_default_base 2>/dev/null)"
 mb=""
 [ -n "$base" ] && mb=$(git merge-base "$ref" "$base" 2>/dev/null)
 range="$ref"
@@ -38,7 +38,7 @@ range="$ref"
 commits_json='[]'
 shas=$(git log --format='%H' "$range" 2>/dev/null)
 if [ -n "$shas" ]; then
-  tmp="$(mktemp 2>/dev/null || echo /tmp/logic-commits.$$)"; printf '[]' >"$tmp"
+  tmp="$(mktemp 2>/dev/null || echo /tmp/decision-trail-commits.$$)"; printf '[]' >"$tmp"
   for sha in $shas; do
     subject=$(git show -s --format='%s' "$sha" 2>/dev/null)
     body=$(git show -s --format='%b' "$sha" 2>/dev/null)
@@ -64,7 +64,7 @@ fi
 
 # beads task issues mentioning the branch
 bd_json='[]'
-if logic_bd_ok; then
+if dt_bd_ok; then
   bd_json=$(bd search "$branch" --json 2>/dev/null | jq '[.[] | {id, title, status, type, description}]' 2>/dev/null)
   [ -z "$bd_json" ] && bd_json='[]'
 fi

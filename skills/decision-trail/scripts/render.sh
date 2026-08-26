@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: render collected rows (JSON array on stdin) as Markdown tables.
+# decision-trail: render collected rows (JSON array on stdin) as Markdown tables.
 #
 # One table per stream (worktree), the current checkout first, then a summary.
 # Stub rows show "(no why — stub)" so unrecorded reasoning is visible. Output is
@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 title="Decision trail"
 [ "${1:-}" = "--title" ] && { title="$2"; shift 2; }
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for render" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required for render" >&2; exit 1; }
 
 data=$(cat)
 [ -z "$data" ] && data='[]'
@@ -28,7 +28,7 @@ if [ "$total" -eq 0 ]; then
 fi
 
 stubs=$(printf '%s' "$data" | jq '[.[] | select(.stub)] | length')
-this_root="$(logic_repo_root)"
+this_root="$(dt_repo_root)"
 
 echo "## ${title}"
 echo
@@ -73,5 +73,5 @@ if [ "$has_blank" -gt 0 ]; then
 fi
 
 if [ "$stubs" -gt 0 ]; then
-  echo "> ${stubs} row(s) are commit stubs with no recorded reasoning. Enrich the ones that mattered with /logic track or the enrich helper; the rest can be left for gc."
+  echo "> ${stubs} row(s) are commit stubs with no recorded reasoning. Enrich the ones that mattered with /decision-trail track or the enrich helper; the rest can be left for gc."
 fi

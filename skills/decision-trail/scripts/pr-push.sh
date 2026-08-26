@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: push a rendered decision trail into the PR description, idempotently.
+# decision-trail: push a rendered decision trail into the PR description, idempotently.
 #
 # Reads Markdown from stdin (or --file), wraps it in stable HTML-comment markers,
 # and replaces the marked section in the PR body — so re-running updates in place
@@ -9,7 +9,7 @@
 #        pr-push.sh --file trail.md [branch]
 set -u
 
-command -v gh >/dev/null 2>&1 || { echo "logic: gh CLI not found; cannot push to PR." >&2; exit 1; }
+command -v gh >/dev/null 2>&1 || { echo "decision-trail: gh CLI not found; cannot push to PR." >&2; exit 1; }
 
 file=""; branch=""
 while [ $# -gt 0 ]; do
@@ -25,10 +25,10 @@ if [ -n "$file" ]; then
 else
   section=$(cat)
 fi
-[ -z "$section" ] && { echo "logic: nothing to push (empty section)." >&2; exit 1; }
+[ -z "$section" ] && { echo "decision-trail: nothing to push (empty section)." >&2; exit 1; }
 
-BEGIN="<!-- logic:decision-trail:begin -->"
-END="<!-- logic:decision-trail:end -->"
+BEGIN="<!-- decision-trail:decision-trail:begin -->"
+END="<!-- decision-trail:decision-trail:end -->"
 
 # Resolve the PR.
 if [ -n "$branch" ]; then
@@ -36,7 +36,7 @@ if [ -n "$branch" ]; then
 else
   pr=$(gh pr view --json number -q .number 2>/dev/null)
 fi
-[ -z "$pr" ] && { echo "logic: no open PR found for this branch. Open one first, then re-run --pr." >&2; exit 1; }
+[ -z "$pr" ] && { echo "decision-trail: no open PR found for this branch. Open one first, then re-run --pr." >&2; exit 1; }
 
 cur=$(gh pr view "$pr" --json body -q .body 2>/dev/null)
 [ "$cur" = "null" ] && cur=""
@@ -63,5 +63,5 @@ fi
 rm -f "$tmp_cur" "$tmp_block"
 
 printf '%s' "$new" | gh pr edit "$pr" --body-file - >/dev/null 2>&1 \
-  && echo "logic: updated decision trail in PR #${pr}." \
-  || { echo "logic: failed to update PR #${pr}." >&2; exit 1; }
+  && echo "decision-trail: updated decision trail in PR #${pr}." \
+  || { echo "decision-trail: failed to update PR #${pr}." >&2; exit 1; }

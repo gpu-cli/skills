@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: collect all decision rows for a branch into one normalized set.
+# decision-trail: collect all decision rows for a branch into one normalized set.
 #
 # Reads the beads backend (one query — the shared Dolt server already sees every
 # worktree) and any TSV fallback files across all worktrees, merges, dedupes, and
@@ -22,25 +22,25 @@ for a in "$@"; do
 done
 if [ -z "$branch" ]; then
   read -r _ branch _ <<EOF
-$(logic_effective_state)
+$(dt_effective_state)
 EOF
 fi
-slug=$(logic_slug "$branch")
+slug=$(dt_slug "$branch")
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for collect" >&2; exit 1; }
-logic_warn_stderr
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required for collect" >&2; exit 1; }
+dt_warn_stderr
 
 # --- beads rows (single query covers every worktree via the shared server) ---
 beads_json='[]'
-if logic_bd_ok; then
-  beads_json=$(bd query "label=logic:${slug}" --all --json 2>/dev/null | jq '
+if dt_bd_ok; then
+  beads_json=$(bd query "label=decision-trail:${slug}" --all --json 2>/dev/null | jq '
     map({
       id: .id,
       ts: (.metadata.ts // .created_at // .created // .updated_at // ""),
       actor: (.metadata.actor // "unknown"),
       phase: (.metadata.phase // ""),
       decision: (.title // ""),
-      why: (if ((.labels // []) | index("logic-stub")) then "" else (.description // "") end),
+      why: (if ((.labels // []) | index("decision-trail-stub")) then "" else (.description // "") end),
       evidence: (.metadata.evidence // ""),
       result: (.metadata.result // ""),
       confidence: (.metadata.confidence // "unknown"),
@@ -48,21 +48,30 @@ if logic_bd_ok; then
       sha: (.metadata.sha // ""),
       worktree: (.metadata.worktree // ""),
       branch: (.metadata.branch // ""),
-      stub: (((.labels // []) | index("logic-stub")) != null),
+      stub: (((.labels // []) | index("decision-trail-stub")) != null),
       source: "beads"
     })' 2>/dev/null)
   [ -z "$beads_json" ] && beads_json='[]'
 fi
 
 # --- TSV rows across all worktrees -----------------------------------------
-tsv_list_file="$(mktemp 2>/dev/null || echo /tmp/logic-tsv.$$)"
+tsv_list_file="$(mktemp 2>/dev/null || echo /tmp/decision-trail-tsv.$$)"
 : >"$tsv_list_file"
 git worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}' | while IFS= read -r wt; do
-  [ -n "$wt" ] && printf '%s\n' "$wt/.logic/audit/${slug}"
+  [ -n "$wt" ] || continue
+  printf '%s\n' "$wt/.decision-trail/audit/${slug}"
+  # Compatibility window, retire alongside migrate-legacy.sh: a sibling worktree
+  # sitting on a branch that has not migrated yet still keeps its rows under the
+  # pre-rename name, and dt_dir's fallback only covers the current checkout.
+  # Omitting this drops those rows from show, and from the conflict pre-filters
+  # that read them — a missed conflict, not just a missing table row. The [ -d ]
+  # guard below skips it when absent, and the row-level sort -u collapses the
+  # duplicate if a worktree somehow carries both directories.
+  printf '%s\n' "$wt/.logic/audit/${slug}"
 done >>"$tsv_list_file"
-printf '%s\n' "$(logic_dir)/audit/${slug}" >>"$tsv_list_file"
+printf '%s\n' "$(dt_dir)/audit/${slug}" >>"$tsv_list_file"
 
-tsv_data_file="$(mktemp 2>/dev/null || echo /tmp/logic-tsvdata.$$)"
+tsv_data_file="$(mktemp 2>/dev/null || echo /tmp/decision-trail-tsvdata.$$)"
 : >"$tsv_data_file"
 sort -u "$tsv_list_file" | while IFS= read -r d; do
   [ -d "$d" ] || continue

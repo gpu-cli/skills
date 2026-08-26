@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: clean up decision rows whose branch was deleted without merging.
+# decision-trail: clean up decision rows whose branch was deleted without merging.
 #
 # A row is an orphan when its commit SHA is reachable from no branch (the branch
 # was deleted unmerged, or the commit was rebased away). Rows whose SHA is
@@ -13,10 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/lib.sh"
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq required" >&2; exit 1; }
-if ! logic_bd_ok; then
-  logic_warn_stderr
-  echo "logic: gc applies to the beads backend. TSV trails are append-only — remove .logic/audit/<branch>/ directly when a branch is abandoned." >&2
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq required" >&2; exit 1; }
+if ! dt_bd_ok; then
+  dt_warn_stderr
+  echo "decision-trail: gc applies to the beads backend. TSV trails are append-only — remove .decision-trail/audit/<branch>/ directly when a branch is abandoned." >&2
   exit 0
 fi
 
@@ -29,14 +29,14 @@ for a in "$@"; do
   esac
 done
 
-# All logic decision rows (optionally scoped to one branch).
-all=$(bd query "type=decision" --all --json 2>/dev/null | jq '[.[] | select((.labels//[]) | map(startswith("logic:")) | any)]')
+# All decision-trail rows (optionally scoped to one branch).
+all=$(bd query "type=decision" --all --json 2>/dev/null | jq '[.[] | select((.labels//[]) | map(startswith("decision-trail:")) | any)]')
 [ -z "$all" ] && all='[]'
 if [ -n "$branch" ]; then
   all=$(printf '%s' "$all" | jq --arg b "$branch" '[.[] | select((.metadata.branch // "")==$b)]')
 fi
 
-candidates="$(mktemp 2>/dev/null || echo /tmp/logic-gc.$$)"; : >"$candidates"
+candidates="$(mktemp 2>/dev/null || echo /tmp/decision-trail-gc.$$)"; : >"$candidates"
 printf '%s' "$all" | jq -c '.[]' | while IFS= read -r row; do
   id=$(printf '%s' "$row" | jq -r '.id')
   sha=$(printf '%s' "$row" | jq -r '.metadata.sha // ""')

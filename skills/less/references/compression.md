@@ -38,7 +38,7 @@ Fit them by **folding**, not by spending. A whole sentence that says "there was
 also a warning" wastes the budget the warning needed. Attach it to the sentence
 that carries the outcome:
 
-> Capped the call at 5 seconds in `scripts/logic-post-commit.sh:12`, so a
+> Capped the call at 5 seconds in `scripts/decision-trail-post-commit.sh:12`, so a
 > commit now always succeeds — but a memory written while the backend is down
 > is dropped with only a stderr warning.
 
@@ -135,7 +135,7 @@ The source response, as it appeared on screen:
 > I looked into why the post-commit hook was hanging, and the cause is that
 > `bd` blocks on a Dolt handshake when the backend is unreachable.
 >
-> Walking through it: `scripts/logic-post-commit.sh` calls `bd remember`
+> Walking through it: `scripts/decision-trail-post-commit.sh` calls `bd remember`
 > synchronously on every commit. That call opens a connection to the Dolt
 > remote before it writes anything locally, and when the remote is down it
 > retries with no ceiling — I measured 47 seconds on a cold network, and it
@@ -149,9 +149,9 @@ The source response, as it appeared on screen:
 > The broader fix is to make `bd remember` write locally first and sync in the
 > background, which is a change inside `bd` itself and out of scope here.
 >
-> I went with the narrow fix, in `scripts/logic-post-commit.sh:12`. The hook
-> now caps the call at 5 seconds; if it times out the commit still succeeds and
-> the memory is dropped with a warning on stderr.
+> I went with the narrow fix, in `scripts/decision-trail-post-commit.sh:12`.
+> The hook now caps the call at 5 seconds; if it times out the commit still
+> succeeds and the memory is dropped with a warning on stderr.
 >
 > Heads up: dropping the memory is silent in the log file — you only see it in
 > the terminal. If you commit while the backend is down, that decision note is
@@ -161,8 +161,9 @@ The source response, as it appeared on screen:
 
 > Commits were hanging because the post-commit hook called `bd remember`
 > synchronously and it retried an unreachable Dolt remote for 47 seconds or
-> forever; a 5-second cap in `scripts/logic-post-commit.sh:12` fixes it, at the
-> cost of silently dropping any memory written while the backend is down.
+> forever; a 5-second cap in `scripts/decision-trail-post-commit.sh:12` fixes
+> it, at the cost of silently dropping any memory written while the backend is
+> down.
 
 Kept: the failure, the cause, the measured number, the path, and the data-loss
 caveat. Cut: the survey of other hooks (narration), the rejected in-`bd` fix
@@ -171,7 +172,7 @@ the same sentence as the fix rather than claiming one of its own.
 
 ### `/less 2`
 
-> Commits were hanging because `scripts/logic-post-commit.sh` called
+> Commits were hanging because `scripts/decision-trail-post-commit.sh` called
 > `bd remember` synchronously, and that call retries an unreachable Dolt remote
 > for 47 seconds — or indefinitely, if the socket stays open but idle. A
 > 5-second timeout at line 12 means the commit now always succeeds, but a
@@ -183,7 +184,7 @@ indefinite-hang case, and the absence of a retry queue.
 
 ### `/less paragraph`
 
-> Commits were hanging because `scripts/logic-post-commit.sh` calls
+> Commits were hanging because `scripts/decision-trail-post-commit.sh` calls
 > `bd remember` synchronously, and that call opens a Dolt connection before
 > writing anything locally — when the remote is unreachable it retries for 47
 > seconds, or forever if the socket stays open but idle. No other hook in the

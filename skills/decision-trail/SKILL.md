@@ -1,9 +1,9 @@
 ---
-name: logic
+name: decision-trail
 description: "Records and audits a branch's decision trail — what was decided, why, and the evidence. Use to track or review rationale."
 ---
 
-# Logic
+# Decision Trail
 
 Keep one reviewable, append-only decision trail for a branch worked by people
 and agents. The trail records what was decided, why, perceived confidence,
@@ -12,7 +12,7 @@ evidence, and outcome. It uses `bd` when available and falls back to TSV.
 Use one command namespace:
 
 ```text
-/logic <command> [arguments]
+/decision-trail <command> [arguments]
 ```
 
 | Command | Use for | Read |
@@ -27,14 +27,15 @@ request to show the current branch's trail.
 
 ## Shared runtime
 
-All helpers live in `.agents/skills/logic/`. Read
+All helpers live in `.agents/skills/decision-trail/`. Read
 [references/config-schema.md](references/config-schema.md) only when changing
 tracking configuration, and [references/row-format.md](references/row-format.md)
 only when changing row semantics. Run the relevant helper rather than manually
-editing `.logic/` state.
+editing `.decision-trail/` state.
 
-`toggle on` materializes a committed `.logic/` runtime and configures Git's
-relative `core.hooksPath`. Tell the user to commit `.logic/` after enabling it.
+`toggle on` materializes a committed `.decision-trail/` runtime and configures
+Git's relative `core.hooksPath`. Tell the user to commit `.decision-trail/`
+after enabling it.
 The optional Claude Code Stop hook enriches meaningful commit stubs; the Git
 post-commit hook captures the stubs regardless.
 

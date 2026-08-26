@@ -7,7 +7,7 @@ A collection of AI agent skills we're collecting as we find gaps and needs in ou
 Install one skill into the current project:
 
 ```bash
-npx skills add gpu-cli/skills --skill logic
+npx skills add gpu-cli/skills --skill decision-trail
 npx skills add gpu-cli/skills --skill lyrebird
 ```
 
@@ -234,7 +234,7 @@ Security audit and active remediation for agent skills. Analyzes SKILL.md instru
 
 ---
 
-### logic — decision trails
+### decision-trail
 
 Keeps a reviewable decision trail for a branch worked by several agents and the
 user at once: what was decided, why, with what perceived confidence, on what
@@ -244,12 +244,12 @@ PR-oriented skill with three subcommands.
 
 **Invoke:**
 
-- `/logic toggle [on|off] [branch]` — turn tracking on/off for a branch;
-  enabling installs the committed `.logic/` runtime and the capture hooks.
-- `/logic track "<what> because <why>" [--confidence high|medium|low]` — record
+- `/decision-trail toggle [on|off] [branch]` — turn tracking on/off for a branch;
+  enabling installs the committed `.decision-trail/` runtime and the capture hooks.
+- `/decision-trail track "<what> because <why>" [--confidence high|medium|low]` — record
   a decision (yours or the user's), including coarse perceived confidence. Owns
   the row protocol the suite shares.
-- `/logic show [branch] [--pr]` — render the trail as a table; validate evidence
+- `/decision-trail show [branch] [--pr]` — render the trail as a table; validate evidence
   against the diff, flag cross-worktree conflicts, add separate decision-quality
   notes, and — when tracking was off — reconstruct a clearly-marked best-effort
   trail. `--pr` writes it into the PR.
@@ -262,10 +262,10 @@ PR-oriented skill with three subcommands.
    asks agents to add a one-line *why* and perceived confidence to the stubs
    that mattered before finishing.
 2. **Storage is beads-native.** Rows are `decision` beads labeled
-   `logic:<branch>`, kept out of `bd ready`, visible across worktrees via the
+   `decision-trail:<branch>`, kept out of `bd ready`, visible across worktrees via the
    shared Dolt server. A per-writer TSV backend is the automatic fallback when
    `bd` is absent.
-3. **Reading is honest.** `/logic show` distinguishes tracked, partial, and
+3. **Reading is honest.** `/decision-trail show` distinguishes tracked, partial, and
    untracked branches; reconstructs untracked history as inferred rows behind a
    warning banner (never written back); groups parallel worktrees into separate
    tables with a three-tier conflict check; calls out assumption, evidence, and
@@ -277,7 +277,7 @@ PR-oriented skill with three subcommands.
 **Requires:** `git`; `jq` and `bd` (beads) for the default backend; `gh` for
 `--pr`. Degrades to a TSV trail without `bd`.
 
-**Test:** `bash skills/logic/tests/selftest.sh`
+**Test:** `bash skills/decision-trail/tests/selftest.sh`
 
 ---
 

@@ -1,6 +1,7 @@
 # Decision row format
 
-The canonical contract for one decision record. The `logic track` skill owns the
+The canonical contract for one decision record. The `decision-trail track`
+skill owns the
 plain-language version; this is the full field reference.
 
 ## Fields
@@ -21,7 +22,7 @@ plain-language version; this is the full field reference.
 | branch   | auto     | logical branch the row is scoped to |
 
 \* A row with no `why` is a **stub**: a mechanical capture awaiting enrichment.
-`logic show` renders it flagged; the enrichment gate asks for a why.
+`decision-trail show` renders it flagged; the enrichment gate asks for a why.
 
 ## Rules
 
@@ -35,18 +36,19 @@ plain-language version; this is the full field reference.
 - **Attribution is honest.** `actor` is who actually decided. Never attribute an
   invented rationale or confidence to the user — leave a pending row with
   `confidence=unknown` instead.
-- **Inferred rows are never stored.** They exist only in a `logic show`
+- **Inferred rows are never stored.** They exist only in a `decision-trail show`
   reconstruction view, marked `actor=inferred`, with hypothesis-phrased whys
   and `confidence=unknown`.
 
 ## Storage encodings
 
 **beads** (default): a `decision` bead, created then closed. `title=decision`,
-`description=why`, `labels=[logic:<branch-slug>, logic-stub?]`, and the remaining
+`description=why`, `labels=[decision-trail:<branch-slug>,
+decision-trail-stub?]`, and the remaining
 fields in metadata JSON. Reads use `bd query ... --all` to include closed rows.
 
 **TSV** (fallback): tab-separated, one file per writer at
-`.logic/audit/<branch-slug>/<actor-slug>.tsv`, header:
+`.decision-trail/audit/<branch-slug>/<actor-slug>.tsv`, header:
 
 ```
 ts	actor	phase	decision	why	evidence	result	kind	sha	worktree	confidence

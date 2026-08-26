@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# logic: read and edit .logic/config.json.
+# decision-trail: read and edit .decision-trail/config.json.
 #
 # Usage:
-#   config-edit.sh init                     # create .logic/config.json if absent
+#   config-edit.sh init                     # create .decision-trail/config.json if absent
 #   config-edit.sh get <jq-filter>          # e.g. get '.default'
 #   config-edit.sh set <key> <value>        # top-level scalar, e.g. set storage tsv
 #   config-edit.sh set-branch <branch> <on|off>
@@ -13,10 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/lib.sh"
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required to edit config" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required to edit config" >&2; exit 1; }
 
-CFG="$(logic_config_path)"
-DIR="$(logic_dir)"
+CFG="$(dt_config_path)"
+DIR="$(dt_dir)"
 
 default_config() {
   cat <<'JSON'

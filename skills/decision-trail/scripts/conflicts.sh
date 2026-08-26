@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: mechanical conflict pre-filters between parallel worktree streams.
+# decision-trail: mechanical conflict pre-filters between parallel worktree streams.
 #
 # Feeds the model's tier-3 judgment. Emits JSON:
 #   tier1 — territory overlap: a file touched by rows from >1 worktree
@@ -18,25 +18,25 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/lib.sh"
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for conflicts" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required for conflicts" >&2; exit 1; }
 
 branch=""
 [ -n "${1:-}" ] && branch="$1"
 if [ -z "$branch" ]; then
   read -r _ branch _ <<EOF
-$(logic_effective_state)
+$(dt_effective_state)
 EOF
 fi
 
 rows=$("$SCRIPT_DIR/collect.sh" "$branch"); [ -z "$rows" ] && rows='[]'
-logical_ref=$(logic_resolve_ref "$branch" 2>/dev/null || true)
+logical_ref=$(dt_resolve_ref "$branch" 2>/dev/null || true)
 
 # Worktrees that wrote rows for this trail.
-row_wts="$(mktemp 2>/dev/null || echo /tmp/logic-rowwt.$$)"; : >"$row_wts"
+row_wts="$(mktemp 2>/dev/null || echo /tmp/decision-trail-rowwt.$$)"; : >"$row_wts"
 printf '%s' "$rows" | jq -r '[.[].worktree] | map(select(length>0)) | unique | .[]' 2>/dev/null >>"$row_wts"
 
 # All checked-out worktrees with their branch.
-all_wts="$(mktemp 2>/dev/null || echo /tmp/logic-allwt.$$)"; : >"$all_wts"
+all_wts="$(mktemp 2>/dev/null || echo /tmp/decision-trail-allwt.$$)"; : >"$all_wts"
 git worktree list --porcelain 2>/dev/null | awk '
   /^worktree /{wt=$2}
   /^branch /{sub("refs/heads/","",$2); print wt "\t" $2}
@@ -48,14 +48,14 @@ git worktree list --porcelain 2>/dev/null | awk '
 # Ancestry-derivation is only meaningful while the logical branch is unmerged.
 # Once it lands in the mainline, every later branch trivially descends from it,
 # so inheriting on that basis would sweep in unrelated feature worktrees.
-dbase="$(logic_default_base 2>/dev/null)"
+dbase="$(dt_default_base 2>/dev/null)"
 logical_merged=0
 if [ -n "$dbase" ] && [ -n "$logical_ref" ] \
    && git merge-base --is-ancestor "$logical_ref" "$dbase" 2>/dev/null; then
   logical_merged=1
 fi
 
-kept="$(mktemp 2>/dev/null || echo /tmp/logic-kept.$$)"; : >"$kept"
+kept="$(mktemp 2>/dev/null || echo /tmp/decision-trail-kept.$$)"; : >"$kept"
 while IFS=$'\t' read -r wt br; do
   [ -z "$wt" ] && continue
   keep=0
@@ -73,7 +73,7 @@ streams_json=$(jq -R -s 'split("\n") | map(select(length>0)) | map(split("\t")) 
 [ -z "$streams_json" ] && streams_json='[]'
 
 # --- tier1: territory overlap across worktrees ------------------------------
-pairs="$(mktemp 2>/dev/null || echo /tmp/logic-t1.$$)"; : >"$pairs"
+pairs="$(mktemp 2>/dev/null || echo /tmp/decision-trail-t1.$$)"; : >"$pairs"
 printf '%s' "$rows" | jq -c '.[] | select((.sha//"")!="")' | while IFS= read -r row; do
   sha=$(printf '%s' "$row" | jq -r '.sha')
   wt=$(printf '%s' "$row" | jq -r '.worktree // ""')
@@ -103,16 +103,16 @@ rm -f "$pairs"
 # --- tier2: textual conflicts via merge-tree between participating streams ---
 merge_tree_conflicts() { # $1 $2 = branch refs; prints conflicted files
   local a="$1" b="$2" rc
-  if git merge-tree --write-tree --name-only "$a" "$b" >"/tmp/.logic_mt.$$" 2>/dev/null; then
+  if git merge-tree --write-tree --name-only "$a" "$b" >"/tmp/.dt_mt.$$" 2>/dev/null; then
     rc=0
   else
     rc=$?
   fi
-  if [ -f "/tmp/.logic_mt.$$" ]; then
+  if [ -f "/tmp/.dt_mt.$$" ]; then
     if [ "$rc" -ne 0 ]; then
-      tail -n +2 "/tmp/.logic_mt.$$"
+      tail -n +2 "/tmp/.dt_mt.$$"
     fi
-    rm -f "/tmp/.logic_mt.$$"
+    rm -f "/tmp/.dt_mt.$$"
     return 0
   fi
   local mbab
@@ -126,7 +126,7 @@ tier2_json='[]'
 brs=$(cut -f2 "$kept" 2>/dev/null | sort -u | grep -v '^$' || true)
 set -- $brs
 if [ "$#" -ge 2 ]; then
-  t2="$(mktemp 2>/dev/null || echo /tmp/logic-t2.$$)"; printf '[]' >"$t2"
+  t2="$(mktemp 2>/dev/null || echo /tmp/decision-trail-t2.$$)"; printf '[]' >"$t2"
   i=1
   for a in "$@"; do
     j=1

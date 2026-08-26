@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decision Trail"
+  short_description: "Reviewable branch decision trails"
+  default_prompt: "Use $decision-trail to track, review, or audit this branch decision trail."

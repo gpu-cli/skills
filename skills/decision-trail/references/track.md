@@ -1,8 +1,9 @@
-# Logic track
+# Decision-trail track
 
 Records one decision in the branch's decision trail. This skill owns the **row
 protocol** — the shape of a decision record and the rules for writing one. The
-`logic toggle` and `logic show` skills and the capture hooks all defer to
+`decision-trail toggle` and `decision-trail show` skills and the capture hooks
+all defer to
 this definition; do not restate it elsewhere.
 
 A decision trail lets a reviewer reconstruct what was decided, why, and on what
@@ -30,7 +31,7 @@ One decision per row. Fields:
 
 Rows are append-only. A wrong call gets a new row that supersedes it; never
 rewrite history. Storage (beads decision beads by default, TSV fallback) is an
-engine detail — see the parent `logic` skill.
+engine detail — see the parent `decision-trail` skill.
 
 ## Logging a decision
 
@@ -38,19 +39,20 @@ Run the log helper. It stamps the timestamp, resolves the logical branch, routes
 to the right backend, and guards spreadsheet formula-injection bytes:
 
 ```bash
-bash .agents/skills/logic/scripts/log.sh \
+bash .agents/skills/decision-trail/scripts/log.sh \
   --decision "kept the Metal flame shader" \
   --why "SwiftUI Canvas dropped to 40fps under load; Metal held 60" \
   --phase flame --confidence high \
   --evidence "benchmarks/flame-load.json" --result "60fps"
 ```
 
-The `/logic track` command is the shorthand for the user's own decisions. Parse
+The `/decision-trail track` command is the shorthand for the user's own
+decisions. Parse
 the argument, then log it as the user:
 
 ```bash
-# /logic track "kept Metal because Canvas dropped frames" --confidence high
-bash .agents/skills/logic/scripts/log.sh --actor user --confidence high \
+# /decision-trail track "kept Metal because Canvas dropped frames" --confidence high
+bash .agents/skills/decision-trail/scripts/log.sh --actor user --confidence high \
   "kept Metal because Canvas dropped frames"
 ```
 
@@ -95,7 +97,7 @@ that represent a real decision a one-line why — either as you make them, or wh
 the enrichment gate prompts you before you finish:
 
 ```bash
-bash .agents/skills/logic/scripts/log.sh --enrich <sha-or-bead-id> \
+bash .agents/skills/decision-trail/scripts/log.sh --enrich <sha-or-bead-id> \
   --why "chose the streaming path so the HUD updates incrementally" \
   --confidence medium
 ```
@@ -117,7 +119,7 @@ tracking is on:
 - **Unattended / background run:** do not block waiting for a human. Log the row
   with `--actor user --confidence unknown` and leave the why empty (it becomes a
   pending row);
-  `logic show` surfaces pending rows for later annotation.
+  `decision-trail show` surfaces pending rows for later annotation.
 
 Never invent a user's rationale or confidence. An honest pending row beats a
 plausible fiction.
@@ -126,4 +128,4 @@ plausible fiction.
 
 If tracking is off for the branch, the helper refuses and says so. That is
 correct — don't force rows onto untracked branches. Turn tracking on first with
-`/logic toggle on` if the branch should be tracked.
+`/decision-trail toggle on` if the branch should be tracked.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# logic: log or enrich a decision row.
+# decision-trail: log or enrich a decision row.
 #
-# Log a new row (used by /logic track and by agents at decision points):
+# Log a new row (used by /decision-trail track and by agents at decision points):
 #   log.sh --decision "..." [--why "..."] [--phase "..."] [--evidence "..."] \
 #          [--result "..."] [--confidence high|medium|low|unknown] \
 #          [--actor "..."] [--kind manual|agent] [--sha <sha>]
@@ -36,29 +36,29 @@ done
 
 case "$confidence" in
   high|medium|low|unknown) ;;
-  *) echo "logic: invalid confidence '$confidence' (use high, medium, low, or unknown)" >&2; exit 1 ;;
+  *) echo "decision-trail: invalid confidence '$confidence' (use high, medium, low, or unknown)" >&2; exit 1 ;;
 esac
 
-[ -z "$actor" ] && actor="$(logic_actor)"
+[ -z "$actor" ] && actor="$(dt_actor)"
 
 # Refuse to log when tracking is off, unless explicitly forced. This keeps
 # stray rows out of untracked branches.
 read -r state logical _storage <<EOF
-$(logic_effective_state)
+$(dt_effective_state)
 EOF
-if [ "$state" != "on" ] && [ -z "${LOGIC_FORCE:-}" ]; then
-  echo "logic: tracking is OFF for this branch; not logging. Enable with /logic toggle on (or set LOGIC_FORCE=1)." >&2
+if [ "$state" != "on" ] && [ -z "${DECISION_TRAIL_FORCE:-}" ]; then
+  echo "decision-trail: tracking is OFF for this branch; not logging. Enable with /decision-trail toggle on (or set DECISION_TRAIL_FORCE=1)." >&2
   exit 2
 fi
 
 # Enrichment path.
 if [ -n "$enrich" ]; then
-  [ -z "$why" ] && { echo "logic: --enrich requires --why" >&2; exit 1; }
-  logic_warn_stderr
-  # logic_enrich accepts a bead id or a SHA and handles both backends: beads
+  [ -z "$why" ] && { echo "decision-trail: --enrich requires --why" >&2; exit 1; }
+  dt_warn_stderr
+  # dt_enrich accepts a bead id or a SHA and handles both backends: beads
   # updates in place, TSV appends a superseding row.
-  out=$(logic_enrich "$enrich" "$why" "$result" "$confidence") || {
-    echo "logic: could not enrich '$enrich' — no matching row found on branch '$logical'." >&2
+  out=$(dt_enrich "$enrich" "$why" "$result" "$confidence") || {
+    echo "decision-trail: could not enrich '$enrich' — no matching row found on branch '$logical'." >&2
     exit 1
   }
   printf 'enriched %s\n' "$enrich"
@@ -78,15 +78,15 @@ if [ -n "$decision" ] && [ -z "$why" ]; then
   esac
 fi
 
-[ -z "$decision" ] && { echo "logic: nothing to log (need --decision or a positional decision)" >&2; exit 1; }
+[ -z "$decision" ] && { echo "decision-trail: nothing to log (need --decision or a positional decision)" >&2; exit 1; }
 [ "$kind" = "manual" ] && [ -z "$actor" ] && actor="user"
 
-id=$(logic_log_row "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$confidence")
+id=$(dt_log_row "$kind" "$actor" "$phase" "$decision" "$why" "$evidence" "$result" "$sha" "$confidence")
 rc=$?
 if [ $rc -eq 0 ] && [ -n "$id" ]; then
   printf 'logged %s\n' "$id"
   printf '  actor=%s branch=%s confidence=%s decision=%s\n' "$actor" "$logical" "$confidence" "$decision"
   [ -n "$why" ] && printf '  why=%s\n' "$why"
 else
-  echo "logic: failed to log row" >&2; exit 1
+  echo "decision-trail: failed to log row" >&2; exit 1
 fi

@@ -1,4 +1,4 @@
-# Logic show
+# Decision-trail show
 
 Shows the decision trail for a branch as a reviewable table. Default output is
 the rendered table in the terminal; `--pr` also writes it into the PR
@@ -6,18 +6,19 @@ description. Safe to run on any branch, including ones that predate tracking.
 
 When a branch is named, every step targets **that** branch — its commits, its
 diff, its rows — regardless of which branch is currently checked out. So
-`/logic show other-feature` from `main` reports that feature's trail, not
+`/decision-trail show other-feature` from `main` reports that feature's trail,
+not
 main's. If the name resolves to no ref, the helpers stop with an error rather
 than quietly falling back to the current checkout.
 
-All helper scripts live in `.agents/skills/logic/scripts/`.
+All helper scripts live in `.agents/skills/decision-trail/scripts/`.
 
 ## Procedure
 
 ### 1. Collect
 
 ```bash
-bash .agents/skills/logic/scripts/collect.sh [branch] > /tmp/logic-rows.json
+bash .agents/skills/decision-trail/scripts/collect.sh [branch] > /tmp/decision-trail-rows.json
 ```
 
 Returns a normalized JSON array of every row for the branch, merged across
@@ -41,13 +42,13 @@ many are unenriched stubs (`.stub == true`).
 Check state with:
 
 ```bash
-bash .agents/skills/logic/scripts/resolve-branch.sh --json
+bash .agents/skills/decision-trail/scripts/resolve-branch.sh --json
 ```
 
 ### 3. Validate evidence resolution and coverage
 
 ```bash
-bash .agents/skills/logic/scripts/audit.sh [branch]
+bash .agents/skills/decision-trail/scripts/audit.sh [branch]
 ```
 
 Reports rows whose evidence doesn't resolve and changed files no row explains.
@@ -58,7 +59,7 @@ by itself, prove that the choice was sound.
 ### 4. Reconstruct (only when needed, per step 2)
 
 ```bash
-bash .agents/skills/logic/scripts/reconstruct.sh [branch] > /tmp/logic-recon.json
+bash .agents/skills/decision-trail/scripts/reconstruct.sh [branch] > /tmp/decision-trail-recon.json
 ```
 
 This emits raw material only (commits + trailers, the diff, beads task issues,
@@ -77,7 +78,7 @@ PR body/comments) — it writes nothing. Turn it into inferred rows yourself:
 ### 5. Conflicts across parallel worktrees
 
 ```bash
-bash .agents/skills/logic/scripts/conflicts.sh [branch]
+bash .agents/skills/decision-trail/scripts/conflicts.sh [branch]
 ```
 
 Returns mechanical pre-filters: **tier 1** (a file touched by rows from more than
@@ -115,12 +116,13 @@ problematic area, and any owner ruling needed. Use `supported`,
 labels. If no material concerns are detected, say so; do not manufacture notes.
 
 This section is an assessment view, not stored history. If the owner rules on an
-open item, record that ruling as a new append-only row with `logic track`.
+open item, record that ruling as a new append-only row with
+`decision-trail track`.
 
 ### 7. Render
 
 ```bash
-cat /tmp/logic-rows.json | bash .agents/skills/logic/scripts/render.sh --title "Decision trail — <branch>"
+cat /tmp/decision-trail-rows.json | bash .agents/skills/decision-trail/scripts/render.sh --title "Decision trail — <branch>"
 ```
 
 One Markdown table per stream (worktree), the current checkout first, with a
@@ -145,10 +147,11 @@ are about to push to a PR; best-effort otherwise.
 ### 9. Optional: push to the PR
 
 ```bash
-cat /tmp/logic-report.md | bash .agents/skills/logic/scripts/pr-push.sh [branch]
+cat /tmp/decision-trail-report.md | bash .agents/skills/decision-trail/scripts/pr-push.sh [branch]
 ```
 
-Assemble `/tmp/logic-report.md` from the rendered trail, evidence and conflict
+Assemble `/tmp/decision-trail-report.md` from the rendered trail, evidence and
+conflict
 findings, Decision quality notes, and Attention section. The helper writes the
 complete report into the PR description between stable markers, so re-running
 replaces the section instead of stacking copies. If the trail includes inferred
@@ -159,11 +162,11 @@ rows, keep the reconstruction warning in the pushed text.
 Offer to tidy rows whose branch was deleted unmerged:
 
 ```bash
-bash .agents/skills/logic/scripts/gc.sh          # dry run, lists candidates
-bash .agents/skills/logic/scripts/gc.sh --apply  # deletes them
+bash .agents/skills/decision-trail/scripts/gc.sh          # dry run, lists candidates
+bash .agents/skills/decision-trail/scripts/gc.sh --apply  # deletes them
 ```
 
 ## Closing offer
 
 If tracking was off or partial, end by offering to turn it on
-(`/logic toggle on`) so the rest of the branch gets a real trail.
+(`/decision-trail toggle on`) so the rest of the branch gets a real trail.

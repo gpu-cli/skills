@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# logic: git-evidence resolution and coverage check for decision rows.
+# decision-trail: git-evidence resolution and coverage check for decision rows.
 #
 # Replaces the transcript audit of the original show-me-your-work skill with an
 # artifact that always exists: the git history. Checks that each row's evidence
@@ -7,7 +7,7 @@
 # that no row covers.
 #
 # The audited branch is the one asked for — not the current checkout — so
-# /logic show <other-branch> from anywhere reports that branch's truth.
+# /decision-trail show <other-branch> from anywhere reports that branch's truth.
 #
 # Usage: audit.sh [branch]
 set -u
@@ -15,18 +15,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/lib.sh"
 
-command -v jq >/dev/null 2>&1 || { echo "logic: jq is required for audit" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "decision-trail: jq is required for audit" >&2; exit 1; }
 
 branch=""
 [ -n "${1:-}" ] && branch="$1"
 if [ -z "$branch" ]; then
   read -r _ branch _ <<EOF
-$(logic_effective_state)
+$(dt_effective_state)
 EOF
 fi
 
-ref=$(logic_resolve_ref "$branch") || {
-  echo "logic: cannot resolve branch '$branch' to a git ref (no local branch, no origin/$branch)." >&2
+ref=$(dt_resolve_ref "$branch") || {
+  echo "decision-trail: cannot resolve branch '$branch' to a git ref (no local branch, no origin/$branch)." >&2
   exit 1
 }
 
@@ -34,7 +34,7 @@ rows=$("$SCRIPT_DIR/collect.sh" "$branch")
 [ -z "$rows" ] && rows='[]'
 total=$(printf '%s' "$rows" | jq 'length')
 
-base="$(logic_default_base 2>/dev/null)"
+base="$(dt_default_base 2>/dev/null)"
 mb=""
 [ -n "$base" ] && mb=$(git merge-base "$ref" "$base" 2>/dev/null)
 
@@ -45,9 +45,9 @@ if [ -z "$mb" ]; then
   echo
 fi
 
-covered="$(mktemp 2>/dev/null || echo /tmp/logic-cov.$$)";      : >"$covered"
-unresolved="$(mktemp 2>/dev/null || echo /tmp/logic-unres.$$)"; : >"$unresolved"
-resolved="$(mktemp 2>/dev/null || echo /tmp/logic-res.$$)";     : >"$resolved"
+covered="$(mktemp 2>/dev/null || echo /tmp/decision-trail-cov.$$)";      : >"$covered"
+unresolved="$(mktemp 2>/dev/null || echo /tmp/decision-trail-unres.$$)"; : >"$unresolved"
+resolved="$(mktemp 2>/dev/null || echo /tmp/decision-trail-res.$$)";     : >"$resolved"
 
 # Validate one commit-ish: it must exist AND belong to the audited branch.
 commit_in_branch() {
@@ -88,7 +88,7 @@ printf '%s' "$rows" | jq -c '.[]' | while IFS= read -r row; do
     if [ -n "$p" ]; then
       if git cat-file -e "${ref}:${p}" 2>/dev/null; then
         ok=1; printf '%s\n' "$p" >>"$covered"
-      elif [ -e "$(logic_repo_root)/$p" ]; then
+      elif [ -e "$(dt_repo_root)/$p" ]; then
         ok=1; printf '%s\n' "$p" >>"$covered"
       fi
     fi
@@ -119,7 +119,7 @@ fi
 
 # Coverage gaps: changed files with no covering row.
 if [ -n "$mb" ]; then
-  gaps="$(mktemp 2>/dev/null || echo /tmp/logic-gaps.$$)"; : >"$gaps"
+  gaps="$(mktemp 2>/dev/null || echo /tmp/decision-trail-gaps.$$)"; : >"$gaps"
   sort -u "$covered" >"${covered}.s" 2>/dev/null && mv -f "${covered}.s" "$covered"
   git diff --name-only "$mb".."$ref" 2>/dev/null | while IFS= read -r f; do
     [ -z "$f" ] && continue
