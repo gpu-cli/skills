@@ -20,12 +20,16 @@ be fixed by changing the code, report it instead — see
 | Command | Use for | Read |
 | --- | --- | --- |
 | `[path]` | Clean the current diff, or a file or directory when given a path | [references/cleanup.md](references/cleanup.md) |
+| `branch [--base <ref>]` | Clean everything this branch changed vs. its base | [references/cleanup.md](references/cleanup.md) |
 | `all` | Clean every source file in the repository | [references/cleanup.md](references/cleanup.md) |
 | `check [scope]` | Report violations without editing, for CI or PR review | [references/check.md](references/check.md) |
 | `install` | Write the comment rules into the project's agent files | [references/install.md](references/install.md) |
 
 With no argument, clean the current diff. Treat an unrecognized argument as a
-path. Never widen the scope the user asked for.
+path. Never widen the scope the user asked for: `branch` and `all` are scopes
+the user has to ask for by name, never a default you reach for because the diff
+looked small. To clean a path that shares a name with a command, write it as
+`./branch`.
 
 ## Triage
 
@@ -55,6 +59,17 @@ each rung.
 
 ## Validation
 
-Run `bash tests/selftest.sh` after changing the bundled scripts. After any
-cleanup, run `node scripts/verify.mjs`: it checks that only comment text
-changed. Its failure is authoritative; its pass is strong evidence, not proof.
+After any cleanup, run `verify.mjs`: it checks that only comment text changed.
+Its failure is authoritative and means you changed code.
+
+```bash
+SKILL=.claude/skills/clean-comments   # wherever `npx skills add` put it
+node "$SKILL/scripts/verify.mjs"
+```
+
+Every command in this skill runs from the repository being cleaned and calls
+the scripts where the skill is installed —
+[references/cleanup.md](references/cleanup.md) opens with the rule.
+
+Changing this skill's own scripts is a different job: run
+`bash tests/selftest.sh` from the skill directory.

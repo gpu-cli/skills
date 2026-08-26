@@ -10,20 +10,51 @@ cc_require_repo() {
 }
 
 # Base ref for --branch: the argument, then the upstream, then origin's default
-# branch, then a local main or master.
+# branch, then origin's main or master, then a local main or master.
+#
+# Two refs are never a usable base, because both resolve to HEAD and collapse
+# the scope to the uncommitted files without saying so:
+#
+#   - the branch's own remote counterpart (a pushed branch tracks origin/<self>)
+#   - the current branch itself, reached through the local main/master fallback
+#     when you are standing on the default branch
+#
+# Both are skipped. The remote counterparts come before the local ones so that
+# standing on main still has a base — origin/main — rather than falling through
+# to the local main, which is HEAD. An upstream naming a different branch is a
+# deliberate base and is honoured.
 cc_base_ref() {
   local want="${1:-}"
   if [ -n "$want" ]; then printf '%s' "$want"; return; fi
-  local up
-  up=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) \
-    && [ -n "$up" ] && { printf '%s' "$up"; return; }
-  local head
+  local up cur head b
+  cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  up=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)
+  if [ -n "$up" ] && [ "${up#*/}" != "$cur" ]; then printf '%s' "$up"; return; fi
   head=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null) \
-    && [ -n "$head" ] && { printf '%s' "$head"; return; }
-  for b in main master; do
+    && [ -n "$head" ] && [ "${head#*/}" != "$cur" ] && { printf '%s' "$head"; return; }
+  for b in origin/main origin/master; do
     git rev-parse --verify --quiet "$b" >/dev/null && { printf '%s' "$b"; return; }
   done
+  for b in main master; do
+    [ "$b" = "$cur" ] && continue
+    git rev-parse --verify --quiet "$b" >/dev/null && { printf '%s' "$b"; return; }
+  done
+  # Standing on the default branch with no remote: there is genuinely nothing to
+  # compare against. Say so rather than returning a ref that means "nothing".
   printf ''
+}
+
+# Fork point of the base ref and HEAD. Scanning a branch diffs from here, not
+# from the base ref itself: a two-dot diff against a moved base reports the
+# base's own later edits as this branch's work. scope.sh's committed listing is
+# already three-dot, so this matters for the files that reach the scan through
+# the working diff or as untracked — where a file the base rewrote and this
+# branch also edited would otherwise carry the base's comments in.
+cc_merge_base() {
+  local base
+  base=$(cc_base_ref "${1:-}")
+  [ -n "$base" ] || return 1
+  git merge-base "$base" HEAD 2>/dev/null
 }
 
 CC_EXTENSIONS='c|cc|cpp|cxx|h|hpp|hh|cs|java|kt|kts|scala|groovy|swift|m|mm|go|rs|zig|d|js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|svelte|astro|py|pyi|rb|rake|php|pl|pm|lua|r|jl|dart|ex|exs|erl|hrl|clj|cljs|cljc|edn|hs|ml|mli|fs|fsx|nim|cr|v|sh|bash|zsh|fish|ps1|sql|tf|hcl|proto|graphql|gql|css|scss|sass|less|styl|yml|yaml|toml|tfvars|gradle|cmake|mk'
