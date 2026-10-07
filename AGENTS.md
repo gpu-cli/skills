@@ -31,6 +31,13 @@ exceeds `skillListingBudgetFraction` of the context window (1%, so ~30,000
 characters at 1M) Claude Code starts dropping the longest descriptions entirely,
 leaving those skills listed by name alone.
 
+A skill that should only ever run when the user types it costs nothing here:
+`disable-model-invocation: true` drops it from Claude Code's listing, and
+`policy: allow_implicit_invocation: false` in `agents/openai.yaml` does the same
+for Codex. Use both for anything with side effects, such as branches, pushes,
+or closed issues. The lint reports such a skill as 0 always-on tokens, but still
+holds its description to budget for hosts that honor neither switch.
+
 **The `SKILL.md` body loads once per invocation.** Write it as an orchestration
 outline: what the phases are, what order they run in, the rules that must be
 resident before the agent touches anything, and a pointer to the reference that
