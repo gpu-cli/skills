@@ -1,0 +1,7 @@
+interface:
+  display_name: "Implement bd"
+  short_description: "Implement a bd issue, then review until an independent agent approves"
+  default_prompt: "Use $implement-bd <id> to implement a bd task or epic and loop with an independent reviewer until it approves."
+
+policy:
+  allow_implicit_invocation: false

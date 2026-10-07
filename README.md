@@ -379,6 +379,56 @@ alternative is a hook and a state file, which would tie the skill to one agent.
 
 ---
 
+### implement-bd
+
+Implements a bd task or epic end to end, has an independent agent review the
+result, fixes what the reviewer finds, and stops only when it approves. One
+command replaces the "implement it in a worktree, get a second model to review
+it, fix until it's happy" prompt.
+
+**Invoke:** `/implement-bd <id> [review=<model>] [effort=<level>] [branch=<name>] [finish=commit|draft|pr]` in Claude Code, `$implement-bd …` in Codex
+
+```text
+/implement-bd VGL-0hb3m review=fable branch=angus/hud-notifications finish=draft
+```
+
+**How it works:**
+
+1. Resolves the reviewer first, so a missing CLI fails before any code is written
+2. With `branch=`, creates a worktree on a new branch from the default branch
+3. Claims the issue, implements it with tests, and runs the repository's quality gates
+4. Sends a fresh reviewer the issue text and the diff, never the implementer's reasoning
+5. Commits each issue once its gates pass, then fixes or refutes each blocking finding and re-reviews, for at most three rounds
+6. On approval: optionally pushes and opens a draft or ready PR, and closes the issue
+
+**Runs until done, on every host:** the run ends with one line,
+`IMPLEMENT-BD: APPROVED …` or `IMPLEMENT-BD: BLOCKED …`. In Claude Code the
+skill's own Stop hook blocks every earlier stop, the same check `/goal` makes.
+In Codex it sets a goal with the goal tool. Anywhere else it loops within the
+turn. An abandoned run's marker in `.git/implement-bd/` expires after six idle
+hours; delete it to release a session sooner.
+
+**Any reviewer model:** omit `review=` for the current model in a fresh
+context. Name a Claude model for a native subagent, or a model from another
+vendor to review through that vendor's CLI (`codex exec`, `claude -p`). A
+different model family gives the most independent review.
+
+**Reasoning depth:** `effort=` sets the reviewer's effort. The implementer's
+depth is the session's own setting. In Claude Code, type ultrathink in the
+invocation for a deeper run; the skill deliberately never contains the word, so
+that it never switches on by itself.
+
+**Context cost:** zero per session. The skill is user-invoked only, so neither
+Claude Code nor Codex lists it to the model.
+
+**Path:** `skills/implement-bd`
+
+**Requires:** `git`, `bd`; `gh` for `finish=draft` or `finish=pr`
+
+**Test:** `bash skills/implement-bd/tests/selftest.sh`
+
+---
+
 ## Contributing
 
 Skills are billed in two places, and the difference drives how they are written.

@@ -108,10 +108,20 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
     [ -n "$when" ] && routing="$routing $when"
 
     desc_tokens=$(printf '%s' "$routing" | est_tokens)
-    desc_shown=$(display_tokens "$desc_tokens")
     body_tokens=$(read_body "$skill_md" | est_tokens)
     limit="$(allowed_body_max "$skill")"
-    desc_total=$((desc_total + desc_tokens))
+
+    # A skill only the user can invoke is left out of Claude Code's listing, so
+    # it costs nothing per session there. Hosts that ignore the flag still list
+    # it, which is why its description is held to the same budget.
+    always_on=$desc_tokens
+    manual=''
+    if [ "$(read_field "$skill_md" disable-model-invocation)" = true ]; then
+        always_on=0
+        manual='  (user-invoked: not listed)'
+    fi
+    desc_shown=$(display_tokens "$always_on")
+    desc_total=$((desc_total + always_on))
 
     desc_flag=''
     body_flag=''
@@ -124,8 +134,8 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
         failures=$((failures + 1))
     fi
 
-    printf '%-18s %12s %8s %13s%s%s\n' \
-        "$skill" "$desc_tokens" "$desc_shown" "$body_tokens" "$desc_flag" "$body_flag"
+    printf '%-18s %12s %8s %13s%s%s%s\n' \
+        "$skill" "$always_on" "$desc_shown" "$body_tokens" "$desc_flag" "$body_flag" "$manual"
 done
 
 printf '%-18s %12s\n' '------------------' '------------'
